@@ -2,7 +2,7 @@ import express, {Request, Response} from 'express';
 import {param} from 'express-validator';
 
 import {DeleteUserCommand} from '@/apps/users/application/commands/delete-user/delete-user.command';
-import {usersMediator} from '@/apps/users/infrastructure/mediator/users-mediator.setup';
+import {mediatR} from '@/config/infrastructure/mediatr';
 import {requireRole, validateRequest} from '@/config/infrastructure/middleware';
 import {UserRole} from '@/libs/tools/domain/persistence/models/user';
 
@@ -22,19 +22,42 @@ const router = express.Router();
  *         name: id
  *         schema:
  *           type: string
+ *           format: uuid
  *         required: true
  *         description: User ID
  *     responses:
  *       204:
- *         description: Deleted user
+ *         description: User deleted successfully
  *       400:
- *         description: Bad request
+ *         description: Validation error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  *       401:
- *         description: Not authorized
+ *         description: Not authenticated
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  *       403:
  *         description: Forbidden
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  *       500:
  *         description: Server error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  */
 router.delete(
   '/api/v1/users/:id',
@@ -43,7 +66,7 @@ router.delete(
   requireRole([UserRole.admin]),
   async (req: Request, res: Response) => {
     const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    await usersMediator.send(new DeleteUserCommand(id));
+    await mediatR.send(new DeleteUserCommand(id));
     res.status(204).send();
   }
 );

@@ -2,7 +2,7 @@ import express, {Request, Response} from 'express';
 import {body} from 'express-validator';
 
 import {RegisterCommand} from '@/apps/users/application/commands/register/register.command';
-import {usersMediator} from '@/apps/users/infrastructure/mediator/users-mediator.setup';
+import {mediatR} from '@/config/infrastructure/mediatr';
 import {validateRequest} from '@/config/infrastructure/middleware';
 
 const router = express.Router();
@@ -12,20 +12,35 @@ const router = express.Router();
  * /auth/register:
  *   post:
  *     summary: Register
- *     description: New user registration
+ *     description: Create a new user account
  *     tags: [Auth]
  *     requestBody:
+ *       required: true
  *       content:
  *         application/json:
  *            schema:
  *               $ref: '#/components/schemas/UserRegisterRequest'
  *     responses:
- *       200:
- *         description: User updated successfully
+ *       204:
+ *         description: User registered successfully
  *       400:
- *         description: Bad request
+ *         description: Validation error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
+ *       409:
+ *         description: User already exists
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  *       500:
  *         description: Server error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  */
 router.post(
   '/api/v1/auth/register',
@@ -37,8 +52,8 @@ router.post(
   validateRequest,
   async (req: Request, res: Response) => {
     const {email, name, password} = req.body;
-    await usersMediator.send(new RegisterCommand(name, email, password));
-    res.status(201).send();
+    await mediatR.send(new RegisterCommand(name, email, password));
+    res.status(204).send();
   }
 );
 

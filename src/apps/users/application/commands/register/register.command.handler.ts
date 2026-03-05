@@ -1,14 +1,19 @@
+import {RequestHandler, requestHandler} from 'mediatr-ts';
+import {inject, injectable} from 'tsyringe';
+
 import {UserRepositoryInterface} from '@/apps/users/domain/persistence/user-repository-interface';
+import {USER_TOKENS} from '@/apps/users/infrastructure/di/tokens';
 import {ConflictError} from '@/libs/dto/domain';
-import {IHandler} from '@/libs/tools/domain';
 import {PasswordServiceInterface} from '@/libs/tools/domain';
 
 import {RegisterCommand} from './register.command';
 
-export class RegisterCommandHandler implements IHandler<RegisterCommand, void> {
+@injectable()
+@requestHandler(RegisterCommand)
+export class RegisterCommandHandler implements RequestHandler<RegisterCommand, void> {
   constructor(
-    private readonly userRepository: UserRepositoryInterface,
-    private readonly passwordService: PasswordServiceInterface
+    @inject(USER_TOKENS.UserRepository) private readonly userRepository: UserRepositoryInterface,
+    @inject(USER_TOKENS.PasswordService) private readonly passwordService: PasswordServiceInterface
   ) {}
 
   async handle(input: RegisterCommand): Promise<void> {

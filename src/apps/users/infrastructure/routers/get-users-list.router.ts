@@ -2,7 +2,7 @@ import express, {Request, Response} from 'express';
 import {matchedData, query} from 'express-validator';
 
 import {ListUsersQuery} from '@/apps/users/application/queries/list-users/list-users.query';
-import {usersMediator} from '@/apps/users/infrastructure/mediator/users-mediator.setup';
+import {mediatR} from '@/config/infrastructure/mediatr';
 import {requireRole, validateRequest} from '@/config/infrastructure/middleware';
 import {UserRole} from '@/libs/tools/domain/persistence/models/user';
 
@@ -41,13 +41,29 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/UsersListResponse'
  *       400:
- *         description: Bad request
+ *         description: Validation error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  *       401:
- *         description: Not authorized
+ *         description: Not authenticated
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  *       403:
  *         description: Forbidden
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  *       500:
  *         description: Server error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  */
 router.get(
   '/api/v1/users',
@@ -59,7 +75,7 @@ router.get(
   requireRole([UserRole.admin]),
   async (req: Request, res: Response) => {
     const {page, pageSize} = matchedData(req, {locations: ['query']});
-    const result = await usersMediator.send(new ListUsersQuery(page, pageSize));
+    const result = await mediatR.send(new ListUsersQuery(page, pageSize));
     res.status(200).send(result);
   }
 );

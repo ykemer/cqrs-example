@@ -1,18 +1,23 @@
+import {RequestHandler, requestHandler} from 'mediatr-ts';
+import {inject, injectable} from 'tsyringe';
+
 import {RefreshTokenRepositoryInterface} from '@/apps/users/domain/persistence/refresh-token-repository-interface';
 import {UserRepositoryInterface} from '@/apps/users/domain/persistence/user-repository-interface';
 import {RefreshTokenServiceInterface} from '@/apps/users/domain/services';
+import {USER_TOKENS} from '@/apps/users/infrastructure/di/tokens';
 import {BadRequestError} from '@/libs/dto/domain';
-import {IHandler} from '@/libs/tools/domain';
 import {JwtServiceInterface} from '@/libs/tools/domain';
 
 import {UpdateRefreshTokenCommand} from './update-refresh-token.command';
 
-export class UpdateRefreshTokenCommandHandler implements IHandler<UpdateRefreshTokenCommand, any> {
+@injectable()
+@requestHandler(UpdateRefreshTokenCommand)
+export class UpdateRefreshTokenCommandHandler implements RequestHandler<UpdateRefreshTokenCommand, any> {
   constructor(
-    private readonly jwtService: JwtServiceInterface,
-    private readonly refreshTokenService: RefreshTokenServiceInterface,
-    private readonly userRepo: UserRepositoryInterface,
-    private readonly refreshTokenRepo: RefreshTokenRepositoryInterface
+    @inject(USER_TOKENS.JwtService) private readonly jwtService: JwtServiceInterface,
+    @inject(USER_TOKENS.RefreshTokenService) private readonly refreshTokenService: RefreshTokenServiceInterface,
+    @inject(USER_TOKENS.UserRepository) private readonly userRepo: UserRepositoryInterface,
+    @inject(USER_TOKENS.RefreshTokenRepository) private readonly refreshTokenRepo: RefreshTokenRepositoryInterface
   ) {}
 
   async handle(input: UpdateRefreshTokenCommand) {

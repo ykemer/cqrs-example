@@ -1,7 +1,7 @@
 import express, {Request, Response} from 'express';
 import {body} from 'express-validator';
 
-import {LoginCommand} from '@/apps/users/application/commands/login/login.command';
+import {UpdateRefreshTokenCommand} from '@/apps/users/application/commands/refresh/update-refresh-token.command';
 import {mediatR} from '@/config/infrastructure/mediatr';
 import {validateRequest} from '@/config/infrastructure/middleware';
 
@@ -9,26 +9,31 @@ const router = express.Router();
 
 /**
  * @swagger
- * /auth/login:
+ * /auth/refresh:
  *   post:
- *     summary: Login
- *     description: Authenticate with email and password to receive a JWT access token and refresh token
+ *     summary: Rotate refresh token
+ *     description: Rotate refresh token and get new access token. Requires a valid refresh token.
  *     tags: [Auth]
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
- *            schema:
- *               $ref: '#/components/schemas/UserLoginRequest'
+ *           schema:
+ *             type: object
+ *             required:
+ *               - refreshToken
+ *             properties:
+ *               refreshToken:
+ *                 type: string
  *     responses:
  *       200:
- *         description: Successfully authenticated
+ *         description: New access and refresh tokens
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/UserTokenResponse'
  *       400:
- *         description: Validation error or invalid credentials
+ *         description: Invalid or expired refresh token
  *         content:
  *           application/problem+json:
  *             schema:
@@ -41,17 +46,14 @@ const router = express.Router();
  *               $ref: '#/components/schemas/ProblemDetails'
  */
 router.post(
-  '/api/v1/auth/login',
-  [
-    body('email').trim().normalizeEmail().isEmail().withMessage('Email must be valid'),
-    body('password').trim().notEmpty().withMessage('You must provide a password'),
-  ],
+  '/api/v1/auth/refresh',
+  [body('refreshToken').trim().notEmpty().withMessage('refreshToken is required')],
   validateRequest,
   async (req: Request, res: Response) => {
-    const {email, password} = req.body;
-    const result = await mediatR.send(new LoginCommand(email, password));
+    const {refreshToken} = req.body;
+    const result = await mediatR.send(new UpdateRefreshTokenCommand(refreshToken));
     res.status(200).send(result);
   }
 );
 
-export {router as loginRouter};
+export {router as refreshRouter};

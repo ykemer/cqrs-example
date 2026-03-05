@@ -1,20 +1,25 @@
+import {RequestHandler, requestHandler} from 'mediatr-ts';
+import {inject, injectable} from 'tsyringe';
+
 import {RefreshTokenRepositoryInterface} from '@/apps/users/domain/persistence/refresh-token-repository-interface';
 import {UserRepositoryInterface} from '@/apps/users/domain/persistence/user-repository-interface';
 import {RefreshTokenServiceInterface} from '@/apps/users/domain/services';
+import {USER_TOKENS} from '@/apps/users/infrastructure/di/tokens';
 import {BadRequestError} from '@/libs/dto/domain';
-import {IHandler} from '@/libs/tools/domain';
 import {JwtServiceInterface, PasswordServiceInterface} from '@/libs/tools/domain';
 
 import {LoginCommand} from './login.command';
 import {LoginUserResponse} from './login-response';
 
-export class LoginCommandHandler implements IHandler<LoginCommand, LoginUserResponse> {
+@injectable()
+@requestHandler(LoginCommand)
+export class LoginCommandHandler implements RequestHandler<LoginCommand, LoginUserResponse> {
   constructor(
-    private readonly userRepository: UserRepositoryInterface,
-    private readonly passwordService: PasswordServiceInterface,
-    private readonly jwtService: JwtServiceInterface,
-    private readonly refreshTokenService: RefreshTokenServiceInterface,
-    private readonly refreshTokenRepository: RefreshTokenRepositoryInterface
+    @inject(USER_TOKENS.UserRepository) private readonly userRepository: UserRepositoryInterface,
+    @inject(USER_TOKENS.PasswordService) private readonly passwordService: PasswordServiceInterface,
+    @inject(USER_TOKENS.JwtService) private readonly jwtService: JwtServiceInterface,
+    @inject(USER_TOKENS.RefreshTokenService) private readonly refreshTokenService: RefreshTokenServiceInterface,
+    @inject(USER_TOKENS.RefreshTokenRepository) private readonly refreshTokenRepository: RefreshTokenRepositoryInterface
   ) {}
 
   async handle(input: LoginCommand): Promise<LoginUserResponse> {
