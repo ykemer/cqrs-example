@@ -2,7 +2,7 @@ import express, {Request, Response} from 'express';
 import {param} from 'express-validator';
 
 import {DeleteClassCommand} from '@/apps/classes/application/commands/delete-class/delete-class.command';
-import {classesMediator} from '@/apps/classes/infrastructure/mediator/classes-mediator.setup';
+import {mediatR} from '@/config/infrastructure/mediatr';
 import {requireRole, validateRequest} from '@/config/infrastructure/middleware';
 import {UserRole} from '@/libs/tools/domain/persistence/models/user';
 
@@ -23,16 +23,42 @@ const router = express.Router();
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
  *         description: Course ID
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
  *         description: Class ID
  *     responses:
  *       204:
- *         description: Class deleted
+ *         description: Class deleted successfully
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
+ *       401:
+ *         description: Not authenticated
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
+ *       403:
+ *         description: Forbidden
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  */
 router.delete(
   '/api/v1/courses/:courseId/classes/:id',
@@ -44,7 +70,7 @@ router.delete(
   validateRequest,
   async (req: Request<{courseId: string; id: string}>, res: Response) => {
     const {id, courseId} = req.params;
-    await classesMediator.send(new DeleteClassCommand(courseId, id));
+    await mediatR.send(new DeleteClassCommand(courseId, id));
     res.status(204).send();
   }
 );

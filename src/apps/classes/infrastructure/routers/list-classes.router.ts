@@ -1,11 +1,9 @@
 import express, {Request, Response} from 'express';
-import {param, query} from 'express-validator';
+import {matchedData, param, query} from 'express-validator';
 
-import {GetClassesForUserQuery} from '@/apps/classes/application/queries/get-classes-for-user/get-classes-for-user.query';
-import {GetClassesWithCountQuery} from '@/apps/classes/application/queries/get-classes-with-count/get-classes-with-count.query';
-import {classesMediator} from '@/apps/classes/infrastructure/mediator/classes-mediator.setup';
+import {ListClassesQuery} from '@/apps/classes/application/queries/list-classes/list-classes.query';
+import {mediatR} from '@/config/infrastructure/mediatr';
 import {validateRequest} from '@/config/infrastructure/middleware';
-import {UserRole} from '@/libs/tools/domain/persistence/models/user';
 
 const router = express.Router();
 
@@ -14,7 +12,10 @@ const router = express.Router();
  * /courses/{courseId}/classes:
  *   get:
  *     summary: List classes
- *     description: Returns a list of classes for a course. Admins see all, users see enrolled/open.
+ *     description: >
+ *       Returns a list of classes for a course.
+ *       Admins see all classes with total count.
+ *       Regular users see only classes they are enrolled in or open for registration.
  *     security:
  *       - bearerAuth: []
  *     tags: [Classes]
@@ -24,20 +25,47 @@ const router = express.Router();
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
  *         description: Course ID
  *       - in: query
  *         name: take
  *         schema:
  *           type: integer
+ *           minimum: 1
  *           default: 10
+ *         description: Number of items to return
  *       - in: query
  *         name: skip
  *         schema:
  *           type: integer
+ *           minimum: 0
  *           default: 0
+ *         description: Number of items to skip
  *     responses:
  *       200:
  *         description: List of classes
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ClassesListResponse'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
+ *       401:
+ *         description: Not authenticated
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  */
 router.get(
   '/api/v1/courses/:courseId/classes',
@@ -49,16 +77,11 @@ router.get(
   validateRequest,
   async (req: Request<{courseId: string}>, res: Response) => {
     const courseId = req.params.courseId;
-    const take = (req.query.take as unknown as number) || 10;
-    const skip = (req.query.skip as unknown as number) || 0;
-    const user = req.currentUser!;
+    const {page, pageSize} = matchedData(req, {locations: ['query']});
 
-    let result;
-    if (user.role === UserRole.admin) {
-      result = await classesMediator.send(new GetClassesWithCountQuery(courseId, take, skip));
-    } else {
-      result = await classesMediator.send(new GetClassesForUserQuery(courseId, user.id, take, skip));
-    }
+    const result = await mediatR.send(
+      new ListClassesQuery(courseId, page, pageSize, req.currentUser!.role, req.currentUser!.id)
+    );
 
     res.status(200).send(result);
   }

@@ -4,7 +4,7 @@ import {body, matchedData, param} from 'express-validator';
 
 import {CreateClassCommand} from '@/apps/classes/application/commands/create-class/create-class.command';
 import {UpsertClassPayload} from '@/apps/classes/domain/persistence/classes.repository.interface';
-import {classesMediator} from '@/apps/classes/infrastructure/mediator/classes-mediator.setup';
+import {mediatR} from '@/config/infrastructure/mediatr';
 import {requireRole, validateRequest} from '@/config/infrastructure/middleware';
 import {UserRole} from '@/libs/tools/domain/persistence/models/user';
 
@@ -25,6 +25,7 @@ const router = express.Router();
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
  *         description: Course ID
  *     requestBody:
  *       required: true
@@ -48,8 +49,34 @@ const router = express.Router();
  *     responses:
  *       201:
  *         description: Class created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ClassResponse'
  *       400:
- *         description: Bad request
+ *         description: Validation error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
+ *       401:
+ *         description: Not authenticated
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
+ *       403:
+ *         description: Forbidden
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  */
 router.post(
   '/api/v1/courses/:courseId/classes',
@@ -91,7 +118,7 @@ router.post(
       endDate: bodyData.endDate as unknown as Date,
     };
 
-    const result = await classesMediator.send(new CreateClassCommand(courseId, payload));
+    const result = await mediatR.send(new CreateClassCommand(courseId, payload));
     res.status(201).send(result);
   }
 );

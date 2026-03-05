@@ -3,7 +3,7 @@ import {body, matchedData, param} from 'express-validator';
 
 import {UpdateClassCommand} from '@/apps/classes/application/commands/update-class/update-class.command';
 import {UpsertClassPayload} from '@/apps/classes/domain/persistence/classes.repository.interface';
-import {classesMediator} from '@/apps/classes/infrastructure/mediator/classes-mediator.setup';
+import {mediatR} from '@/config/infrastructure/mediatr';
 import {requireRole, validateRequest} from '@/config/infrastructure/middleware';
 import {NotFoundError} from '@/libs/dto/domain';
 import {UserRole} from '@/libs/tools/domain/persistence/models/user';
@@ -25,12 +25,14 @@ const router = express.Router();
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
  *         description: Course ID
  *       - in: path
  *         name: id
  *         required: true
  *         schema:
  *           type: string
+ *           format: uuid
  *         description: Class ID
  *     requestBody:
  *       required: true
@@ -38,6 +40,7 @@ const router = express.Router();
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [maxUsers, registrationDeadline, startDate, endDate]
  *             properties:
  *               maxUsers:
  *                 type: number
@@ -53,8 +56,40 @@ const router = express.Router();
  *     responses:
  *       200:
  *         description: Class updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ClassResponse'
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
+ *       401:
+ *         description: Not authenticated
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
+ *       403:
+ *         description: Forbidden
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  *       404:
  *         description: Class not found
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  */
 router.put(
   '/api/v1/courses/:courseId/classes/:id',
@@ -90,7 +125,7 @@ router.put(
     const {id, courseId} = req.params;
     const data = matchedData<UpsertClassPayload>(req, {locations: ['body']});
 
-    const result = await classesMediator.send(new UpdateClassCommand(courseId, id, data));
+    const result = await mediatR.send(new UpdateClassCommand(courseId, id, data));
     if (!result) throw new NotFoundError('Class not found');
 
     res.status(200).send(result);
