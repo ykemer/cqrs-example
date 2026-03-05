@@ -1,4 +1,4 @@
-import {Op} from 'sequelize';
+import {Op, Sequelize} from 'sequelize';
 
 import {ClassDto} from '@/apps/classes/domain/models/class.dto';
 import {
@@ -97,7 +97,12 @@ export class ClassesRepository implements ClassesRepositoryInterface {
     const {rows, count} = await ClassModel.findAndCountAll({
       where: {
         courseId,
-        [Op.or]: [{registrationDeadline: {[Op.gt]: now}}, {'$enrollments.user_id$': userId}],
+        [Op.or]: [
+          {registrationDeadline: {[Op.gt]: now}},
+          Sequelize.literal(
+            `EXISTS (SELECT 1 FROM enrollments WHERE enrollments.class_id = ClassModel.id AND enrollments.user_id = '${userId}')`
+          ),
+        ],
       },
       include: [
         {

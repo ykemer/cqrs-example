@@ -1,4 +1,4 @@
-import {Op} from 'sequelize';
+import {Op, Sequelize} from 'sequelize';
 
 import {CourseDto} from '@/apps/courses/domain/models/course.dto';
 import {
@@ -6,7 +6,7 @@ import {
   UpsertCoursePayload,
 } from '@/apps/courses/domain/persistence/courses.repository.interface';
 import {BadRequestError} from '@/libs/dto/domain';
-import {ClassModel, CourseModel, EnrollmentsModel} from '@/libs/tools/domain';
+import {ClassModel, CourseModel} from '@/libs/tools/domain';
 
 export class CoursesRepository implements CoursesRepositoryInterface {
   constructor() {}
@@ -81,32 +81,27 @@ export class CoursesRepository implements CoursesRepositoryInterface {
     const now = new Date();
 
     const {rows, count} = await CourseModel.findAndCountAll({
-      attributes: ['id', 'name', 'description', 'enrolledUsers'],
+      limit: take,
+      offset: skip,
+      order: [['created_at', 'DESC']],
+      distinct: true,
+      useMaster: false,
       include: [
         {
           model: ClassModel,
           as: 'classes',
-          attributes: [],
           required: true,
-          include: [
-            {
-              model: EnrollmentsModel,
-              as: 'enrollments',
-              attributes: [],
-              required: false,
-              where: {userId},
-            },
-          ],
+          attributes: [],
           where: {
-            [Op.or]: [{registrationDeadline: {[Op.gt]: now}}, {'$classes.enrollments.id$': {[Op.ne]: null}}],
+            [Op.or]: [
+              {registrationDeadline: {[Op.gt]: now}},
+              Sequelize.literal(
+                `EXISTS (SELECT 1 FROM enrollments WHERE enrollments.class_id = \`classes\`.\`id\` AND enrollments.user_id = '${userId}')`
+              ),
+            ],
           },
         },
       ],
-      limit: take,
-      offset: skip,
-      order: [['created_at', 'DESC']],
-      useMaster: false,
-      distinct: true,
     });
 
     return {
