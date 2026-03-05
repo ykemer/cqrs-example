@@ -15,6 +15,7 @@ import {getUserRouter} from '@/apps/users/infrastructure/routers/get-user.router
 import {listUsersRouter} from '@/apps/users/infrastructure/routers/get-users-list.router';
 import {loginRouter} from '@/apps/users/infrastructure/routers/login.router';
 import {profileRouter} from '@/apps/users/infrastructure/routers/profile.router';
+import {refreshRouter} from '@/apps/users/infrastructure/routers/refresh.router';
 import {registerRouter} from '@/apps/users/infrastructure/routers/register.router';
 import {updateUserRouter} from '@/apps/users/infrastructure/routers/update-user.router';
 
@@ -22,6 +23,7 @@ const configureRouters = (app: Express) => {
   // Users
   app.use(registerRouter);
   app.use(loginRouter);
+  app.use(refreshRouter);
   app.use(profileRouter);
   app.use(listUsersRouter);
   app.use(getUserRouter);

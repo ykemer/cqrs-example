@@ -3,6 +3,9 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 import 'reflect-metadata';
+import '@/apps/classes/infrastructure/mediator/classes-handlers.register';
+import '@/apps/courses/infrastructure/mediator/courses-handlers.register';
+import '@/apps/users/infrastructure/mediator/users-handlers.register';
 import {getConfiguredApp} from '@/config';
 import {setupPersistence} from '@/libs/tools/infrastructure';
 

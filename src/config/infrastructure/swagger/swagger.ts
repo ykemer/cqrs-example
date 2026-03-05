@@ -1,6 +1,7 @@
 ﻿import {Router} from 'express';
 import swaggerJsdoc from 'swagger-jsdoc';
-import swaggerUi from 'swagger-ui-express';
+
+import {apiReference} from '@scalar/express-api-reference';
 
 const options = {
   definition: {
@@ -24,6 +25,26 @@ const options = {
         },
       },
       schemas: {
+        ProblemDetails: {
+          type: 'object',
+          properties: {
+            type: {type: 'string', format: 'uri', description: 'URI reference identifying the problem type'},
+            title: {type: 'string', description: 'Short human-readable summary of the problem'},
+            status: {type: 'integer', description: 'HTTP status code'},
+            detail: {type: 'string', description: 'Human-readable explanation of the problem'},
+            traceId: {type: 'string', description: 'Trace identifier for correlating logs'},
+            errors: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  message: {type: 'string'},
+                  field: {type: 'string'},
+                },
+              },
+            },
+          },
+        },
         UserUpdateRequest: {
           type: 'object',
           properties: {
@@ -152,6 +173,49 @@ const options = {
             },
           },
         },
+        CourseResponse: {
+          type: 'object',
+          properties: {
+            id: {type: 'string', format: 'uuid'},
+            name: {type: 'string'},
+            description: {type: 'string'},
+            enrolledUsers: {type: 'number', description: 'Number of enrolled users'},
+          },
+        },
+        CoursesListResponse: {
+          type: 'object',
+          properties: {
+            data: {
+              type: 'array',
+              items: {$ref: '#/components/schemas/CourseResponse'},
+            },
+            page: {type: 'number'},
+            pageSize: {type: 'number'},
+            total: {type: 'number'},
+            hasNextPage: {type: 'boolean'},
+          },
+        },
+        ClassResponse: {
+          type: 'object',
+          properties: {
+            id: {type: 'string', format: 'uuid'},
+            courseId: {type: 'string', format: 'uuid'},
+            maxUsers: {type: 'number'},
+            registrationDeadline: {type: 'string', format: 'date-time'},
+            startDate: {type: 'string', format: 'date-time'},
+            endDate: {type: 'string', format: 'date-time'},
+          },
+        },
+        ClassesListResponse: {
+          type: 'object',
+          properties: {
+            data: {
+              type: 'array',
+              items: {$ref: '#/components/schemas/ClassResponse'},
+            },
+            total: {type: 'number'},
+          },
+        },
       },
     },
   },
@@ -162,14 +226,18 @@ const specs = swaggerJsdoc(options);
 
 const router = Router();
 
-const uiOptions = {
-  swaggerOptions: {
-    persistAuthorization: true,
-    displayRequestDuration: true,
-  },
-};
+router.get('/openapi.json', (_req, res) => {
+  res.json(specs);
+});
 
-router.use('/', swaggerUi.serve, swaggerUi.setup(specs, uiOptions));
-router.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, uiOptions));
+router.use(
+  '/api-docs',
+  apiReference({
+    spec: {
+      content: specs,
+    },
+    theme: 'purple',
+  })
+);
 
 export {router as swaggerRouter};
