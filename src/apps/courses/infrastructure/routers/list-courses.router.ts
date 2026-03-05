@@ -2,7 +2,7 @@ import express, {Request, Response} from 'express';
 import {matchedData, query} from 'express-validator';
 
 import {ListCoursesQuery} from '@/apps/courses/application/queries/list-courses/list-courses.query';
-import {coursesMediator} from '@/apps/courses/infrastructure/mediator/courses-mediator.setup';
+import {mediatR} from '@/config/infrastructure/mediatr';
 import {requireAuth, validateRequest} from '@/config/infrastructure/middleware';
 
 const router = express.Router();
@@ -37,12 +37,28 @@ const router = express.Router();
  *     responses:
  *       200:
  *         description: Paginated list of courses
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CoursesListResponse'
  *       400:
- *         description: Bad request
+ *         description: Validation error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  *       401:
- *         description: Not authorized
+ *         description: Not authenticated
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  *       500:
  *         description: Server error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  */
 router.get(
   '/api/v1/courses',
@@ -54,9 +70,7 @@ router.get(
   requireAuth,
   async (req: Request, res: Response) => {
     const {page, pageSize} = matchedData(req, {locations: ['query']});
-    const result = await coursesMediator.send(
-      new ListCoursesQuery(page, pageSize, req.currentUser!.role, req.currentUser!.id)
-    );
+    const result = await mediatR.send(new ListCoursesQuery(page, pageSize, req.currentUser!.role, req.currentUser!.id));
     res.status(200).send(result);
   }
 );

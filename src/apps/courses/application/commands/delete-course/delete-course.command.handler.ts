@@ -1,11 +1,16 @@
+import {RequestHandler, requestHandler} from 'mediatr-ts';
+import {inject, injectable} from 'tsyringe';
+
 import {CoursesRepositoryInterface} from '@/apps/courses/domain/persistence/courses.repository.interface';
+import {COURSE_TOKENS} from '@/apps/courses/infrastructure/di/tokens';
 import {BadRequestError, NotFoundError} from '@/libs/dto/domain';
-import {IHandler} from '@/libs/tools/domain';
 
 import {DeleteCourseCommand} from './delete-course.command';
 
-export class DeleteCourseCommandHandler implements IHandler<DeleteCourseCommand, void> {
-  constructor(private readonly repository: CoursesRepositoryInterface) {}
+@injectable()
+@requestHandler(DeleteCourseCommand)
+export class DeleteCourseCommandHandler implements RequestHandler<DeleteCourseCommand, void> {
+  constructor(@inject(COURSE_TOKENS.CoursesRepository) private readonly repository: CoursesRepositoryInterface) {}
 
   async handle(input: DeleteCourseCommand): Promise<void> {
     const {id} = input;

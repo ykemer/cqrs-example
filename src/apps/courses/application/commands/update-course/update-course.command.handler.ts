@@ -1,12 +1,17 @@
+import {RequestHandler, requestHandler} from 'mediatr-ts';
+import {inject, injectable} from 'tsyringe';
+
 import {CourseDto} from '@/apps/courses/domain/models/course.dto';
 import {CoursesRepositoryInterface} from '@/apps/courses/domain/persistence/courses.repository.interface';
+import {COURSE_TOKENS} from '@/apps/courses/infrastructure/di/tokens';
 import {NotFoundError} from '@/libs/dto/domain';
-import {IHandler} from '@/libs/tools/domain';
 
 import {UpdateCourseCommand} from './update-course.command';
 
-export class UpdateCourseCommandHandler implements IHandler<UpdateCourseCommand, CourseDto> {
-  constructor(private readonly repository: CoursesRepositoryInterface) {}
+@injectable()
+@requestHandler(UpdateCourseCommand)
+export class UpdateCourseCommandHandler implements RequestHandler<UpdateCourseCommand, CourseDto> {
+  constructor(@inject(COURSE_TOKENS.CoursesRepository) private readonly repository: CoursesRepositoryInterface) {}
 
   async handle(input: UpdateCourseCommand): Promise<CourseDto> {
     const {id, name, description} = input;

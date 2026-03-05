@@ -2,7 +2,7 @@ import express, {Request, Response} from 'express';
 import {body, matchedData} from 'express-validator';
 
 import {CreateCourseCommand} from '@/apps/courses/application/commands/create-course/create-course.command';
-import {coursesMediator} from '@/apps/courses/infrastructure/mediator/courses-mediator.setup';
+import {mediatR} from '@/config/infrastructure/mediatr';
 import {requireRole, validateRequest} from '@/config/infrastructure/middleware';
 import {UserRole} from '@/libs/tools/domain/persistence/models/user';
 
@@ -32,14 +32,34 @@ const router = express.Router();
  *     responses:
  *       201:
  *         description: Course created
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CourseResponse'
  *       400:
- *         description: Bad request
+ *         description: Validation error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  *       401:
- *         description: Not authorized
+ *         description: Not authenticated
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  *       403:
  *         description: Forbidden
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  *       500:
  *         description: Server error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  */
 router.post(
   '/api/v1/courses',
@@ -51,7 +71,7 @@ router.post(
   requireRole([UserRole.admin]),
   async (req: Request, res: Response) => {
     const {name, description} = matchedData(req, {locations: ['body']});
-    const course = await coursesMediator.send(new CreateCourseCommand(name, description));
+    const course = await mediatR.send(new CreateCourseCommand(name, description));
     res.status(201).send(course);
   }
 );

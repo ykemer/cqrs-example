@@ -2,7 +2,7 @@ import express, {Request, Response} from 'express';
 import {param} from 'express-validator';
 
 import {GetCourseQuery} from '@/apps/courses/application/queries/get-course/get-course.query';
-import {coursesMediator} from '@/apps/courses/infrastructure/mediator/courses-mediator.setup';
+import {mediatR} from '@/config/infrastructure/mediatr';
 import {requireAuth, validateRequest} from '@/config/infrastructure/middleware';
 
 const router = express.Router();
@@ -27,14 +27,34 @@ const router = express.Router();
  *     responses:
  *       200:
  *         description: Course details
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CourseResponse'
  *       400:
- *         description: Bad request
+ *         description: Validation error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  *       401:
- *         description: Not authorized
+ *         description: Not authenticated
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  *       404:
  *         description: Course not found
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  *       500:
  *         description: Server error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  */
 router.get(
   '/api/v1/courses/:id',
@@ -43,7 +63,7 @@ router.get(
   requireAuth,
   async (req: Request, res: Response) => {
     const id = req.params.id as string;
-    const course = await coursesMediator.send(new GetCourseQuery(id));
+    const course = await mediatR.send(new GetCourseQuery(id));
     res.status(200).send(course);
   }
 );

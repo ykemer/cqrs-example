@@ -2,7 +2,7 @@ import express, {Request, Response} from 'express';
 import {body, matchedData, param} from 'express-validator';
 
 import {UpdateCourseCommand} from '@/apps/courses/application/commands/update-course/update-course.command';
-import {coursesMediator} from '@/apps/courses/infrastructure/mediator/courses-mediator.setup';
+import {mediatR} from '@/config/infrastructure/mediatr';
 import {requireRole, validateRequest} from '@/config/infrastructure/middleware';
 import {UserRole} from '@/libs/tools/domain/persistence/models/user';
 
@@ -40,16 +40,40 @@ const router = express.Router();
  *     responses:
  *       200:
  *         description: Course updated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/CourseResponse'
  *       400:
- *         description: Bad request
+ *         description: Validation error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  *       401:
- *         description: Not authorized
+ *         description: Not authenticated
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  *       403:
  *         description: Forbidden
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  *       404:
  *         description: Course not found
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  *       500:
  *         description: Server error
+ *         content:
+ *           application/problem+json:
+ *             schema:
+ *               $ref: '#/components/schemas/ProblemDetails'
  */
 router.patch(
   '/api/v1/courses/:id',
@@ -63,7 +87,7 @@ router.patch(
   async (req: Request, res: Response) => {
     const id = req.params.id as string;
     const {name, description} = matchedData(req, {locations: ['body']});
-    const course = await coursesMediator.send(new UpdateCourseCommand(id, name, description));
+    const course = await mediatR.send(new UpdateCourseCommand(id, name, description));
     res.status(200).send(course);
   }
 );

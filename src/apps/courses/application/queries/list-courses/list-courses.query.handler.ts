@@ -1,18 +1,24 @@
+import {RequestHandler, requestHandler} from 'mediatr-ts';
+import {inject, injectable} from 'tsyringe';
+
+import {CourseDto} from '@/apps/courses/domain/models/course.dto';
 import {CoursesRepositoryInterface} from '@/apps/courses/domain/persistence/courses.repository.interface';
-import {IHandler} from '@/libs/tools/domain';
+import {COURSE_TOKENS} from '@/apps/courses/infrastructure/di/tokens';
 import {UserRole} from '@/libs/tools/domain/persistence/models/user';
 
 import {ListCoursesQuery} from './list-courses.query';
 import {ListCoursesResponse} from './list-courses.response';
 
-export class ListCoursesQueryHandler implements IHandler<ListCoursesQuery, ListCoursesResponse> {
-  constructor(private readonly repository: CoursesRepositoryInterface) {}
+@injectable()
+@requestHandler(ListCoursesQuery)
+export class ListCoursesQueryHandler implements RequestHandler<ListCoursesQuery, ListCoursesResponse> {
+  constructor(@inject(COURSE_TOKENS.CoursesRepository) private readonly repository: CoursesRepositoryInterface) {}
 
   async handle(input: ListCoursesQuery): Promise<ListCoursesResponse> {
     const {take, skip, page, pageSize, role, userId} = input;
 
     let total: number;
-    let data;
+    let data: CourseDto[];
 
     if (role === UserRole.admin) {
       // Admin: unrestricted paginated list
