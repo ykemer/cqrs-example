@@ -1,7 +1,0 @@
-import {RequestData} from 'mediatr-ts';
-
-export class DeleteUserCommand extends RequestData<void> {
-  constructor(public readonly id: string) {
-    super();
-  }
-}
