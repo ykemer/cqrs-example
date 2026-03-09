@@ -2,10 +2,12 @@
 
 A small CQRS learning project (Node + TypeScript) with a two-node PostgreSQL cluster (master + replica) wired up via Docker Compose.
 
+This project uses a vertical "slice" architecture (also called "slice architecture" or "vertical-slice"). Application features are organized by domain slice under `src/slices/*` (for example `src/slices/auth`, `src/slices/courses`, `src/slices/classes`, `src/slices/users`). Each slice contains its HTTP routes, request/handler definitions and any slice-specific logic, which keeps features self-contained and easy to reason about.
+
 Key points
 
 - Docker Compose brings up two PostgreSQL containers (master on host port 5551, replica on host port 5552). The compose file uses the official `postgres:17.5` image.
-- Persistence is implemented with Sequelize. Database configuration lives under `src/libs/tools/infrastructure/persistence/config/database.ts` and the Sequelize models live under `src/libs/tools/domain/persistence/models`.
+- Persistence is implemented with Sequelize. Database configuration lives under `src/shared/persistence/config.js` and the Sequelize models and database helpers live under `src/shared/persistence` and `src/shared/persistence/database`.
 - This repository uses Sequelize CLI migrations/seeders. Use the npm scripts `migrate` and `seed-db` to manage schema and initial data.
 
 Quick start
@@ -31,8 +33,8 @@ npm run seed-db
 
 Notes on schema setup
 
-- This project does not include a `src/infrastructure/persistence/sync.ts` script in source; instead it relies on Sequelize migrations. Run `npm run migrate` to apply migrations and `npm run seed-db` to populate seed data.
-- If you previously relied on a `sequelize.sync({ force: true })` workflow, be aware the canonical repo scripts now use migrations for reproducible schema changes.
+- This project relies on Sequelize migrations stored in the repository. Run `npm run migrate` to apply migrations and `npm run seed-db` to populate seed data.
+- If you previously relied on a `sequelize.sync({ force: true })` workflow, be aware the canonical repo scripts use migrations for reproducible schema changes.
 
 Environment variables
 
@@ -84,6 +86,8 @@ Troubleshooting
 Development and tests
 
 - The TypeScript source lives under `src/`. The app entrypoint is `src/index.ts`.
+- Features are organized by vertical slice under `src/slices/*` (for example `src/slices/auth`, `src/slices/courses`, `src/slices/classes`, `src/slices/users`).
+- Shared infrastructure (di container, mediatr wiring, persistence, middleware, utilities) live under `src/shared`.
 - To start the app in development mode (auto-reload) use `npm run dev`.
 
 Security reminder

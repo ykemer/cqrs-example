@@ -67,7 +67,7 @@ module.exports = [
         },
       ],
 
-      // intentionally removed no-restricted-imports to avoid schema issues in flat config
+      // intentionally removed no-restricted-imports to avoid schema issues in flat database
     },
   },
 
