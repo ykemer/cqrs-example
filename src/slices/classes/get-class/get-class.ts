@@ -1,10 +1,18 @@
 import express, {Request, Response} from 'express';
 import {param} from 'express-validator';
+import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
+import {injectable} from 'tsyringe';
 
-import {GetClassQuery} from '@/apps/classes/application/queries/get-class/get-class.query';
-import {mediatR} from '@/config/infrastructure/mediatr';
-import {validateRequest} from '@/config/infrastructure/middleware';
-import {NotFoundError} from '@/libs/dto/domain';
+import {
+  ClassDto,
+  ClassModel,
+  CourseModel,
+  mediatR,
+  NotFoundError,
+  requireRole,
+  UserRole,
+  validateRequest,
+} from '@/shared';
 
 const router = express.Router();
 
@@ -66,6 +74,7 @@ const router = express.Router();
  */
 router.get(
   '/api/v1/courses/:courseId/classes/:id',
+  requireRole([UserRole.admin]),
   [
     param('id').isUUID().withMessage('ID must be a valid UUID'),
     param('courseId').isUUID().withMessage('ID must be a valid UUID'),
@@ -78,5 +87,45 @@ router.get(
     res.status(200).send(result);
   }
 );
+
+export class GetClassQuery extends RequestData<ClassDto> {
+  constructor(
+    public readonly classId: string,
+    public readonly id: string
+  ) {
+    super();
+  }
+}
+
+@injectable()
+@requestHandler(GetClassQuery)
+export class GetClassQueryHandler implements RequestHandler<GetClassQuery, ClassDto | null> {
+  async handle(query: GetClassQuery): Promise<ClassDto | null> {
+    const course = await CourseModel.findByPk(query.classId, {useMaster: false});
+    if (!course) {
+      throw new NotFoundError(`Course ${query.classId} not found`);
+    }
+
+    const output = await ClassModel.findOne({
+      where: {id: query.id, courseId: query.classId},
+      include: [{model: CourseModel, as: 'course', attributes: ['name']}],
+      useMaster: false,
+    });
+
+    if (output === null) {
+      throw new NotFoundError(`Class ${query.id} for course ${query.classId} not found`);
+    }
+    return {
+      id: output.id,
+      courseId: output.courseId,
+      name: course.name,
+      maxUsers: output.maxUsers,
+      enrolledUsers: output.enrolledUsers ?? 0,
+      registrationDeadline: output.registrationDeadline,
+      startDate: output.startDate,
+      endDate: output.endDate,
+    };
+  }
+}
 
 export {router as getClassRouter};
