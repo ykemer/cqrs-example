@@ -4,13 +4,13 @@ import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {injectable} from 'tsyringe';
 
 import {
-  BadRequestError,
   ClassModel,
   ConflictError,
   CourseModel,
   EnrollmentsModel,
   mediatR,
   NotFoundError,
+  requireAuth,
   validateRequest,
 } from '@/shared';
 import {UserUnenrolledEvent} from '@/shared/domain/events';
@@ -76,6 +76,7 @@ router.delete(
     param('courseId').isUUID().withMessage('ID must be a valid UUID'),
   ],
   validateRequest,
+  requireAuth,
   async (req: Request<{courseId: string; classId: string}>, res: Response) => {
     const {classId, courseId} = req.params;
     await mediatR.send(new UnenrollFromClassCommand(classId, courseId, req.currentUser.id));

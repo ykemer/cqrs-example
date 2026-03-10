@@ -11,6 +11,7 @@ import {
   EnrollmentsModel,
   mediatR,
   NotFoundError,
+  requireAuth,
   validateRequest,
 } from '@/shared';
 import {UserEnrolledEvent} from '@/shared/domain/events';
@@ -76,6 +77,7 @@ router.post(
     param('courseId').isUUID().withMessage('ID must be a valid UUID'),
   ],
   validateRequest,
+  requireAuth,
   async (req: Request<{courseId: string; classId: string}>, res: Response) => {
     const {classId, courseId} = req.params;
     await mediatR.send(new EnrollToClassCommand(courseId, classId, req.currentUser.id));
