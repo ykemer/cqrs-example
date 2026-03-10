@@ -18,7 +18,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /courses/{courseId}/classes/{id}:
+ * /courses/{courseId}/classes/{classId}:
  *   get:
  *     summary: Get a class by ID
  *     description: Returns a single class by its ID. Requires authentication.
@@ -34,7 +34,7 @@ const router = express.Router();
  *           format: uuid
  *         description: Course ID
  *       - in: path
- *         name: id
+ *         name: classId
  *         required: true
  *         schema:
  *           type: string
@@ -73,16 +73,16 @@ const router = express.Router();
  *               $ref: '#/components/schemas/ProblemDetails'
  */
 router.get(
-  '/api/v1/courses/:courseId/classes/:id',
+  '/api/v1/courses/:courseId/classes/:classId',
   requireRole([UserRole.admin]),
   [
-    param('id').isUUID().withMessage('ID must be a valid UUID'),
-    param('courseId').isUUID().withMessage('ID must be a valid UUID'),
+    param('courseId').isUUID().withMessage('courseId must be a valid UUID'),
+    param('classId').isUUID().withMessage('classId must be a valid UUID'),
   ],
   validateRequest,
-  async (req: Request<{courseId: string; id: string}>, res: Response) => {
-    const {id, courseId} = req.params;
-    const result = await mediatR.send(new GetClassQuery(courseId, id));
+  async (req: Request<{courseId: string; classId: string}>, res: Response) => {
+    const {classId, courseId} = req.params;
+    const result = await mediatR.send(new GetClassQuery(courseId, classId));
     if (!result) throw new NotFoundError('Class not found');
     res.status(200).send(result);
   }
@@ -90,8 +90,8 @@ router.get(
 
 export class GetClassQuery extends RequestData<ClassDto> {
   constructor(
-    public readonly classId: string,
-    public readonly id: string
+    public readonly courseId: string,
+    public readonly classId: string
   ) {
     super();
   }
@@ -101,19 +101,19 @@ export class GetClassQuery extends RequestData<ClassDto> {
 @requestHandler(GetClassQuery)
 export class GetClassQueryHandler implements RequestHandler<GetClassQuery, ClassDto | null> {
   async handle(query: GetClassQuery): Promise<ClassDto | null> {
-    const course = await CourseModel.findByPk(query.classId, {useMaster: false});
+    const course = await CourseModel.findByPk(query.courseId, {useMaster: false});
     if (!course) {
       throw new NotFoundError(`Course ${query.classId} not found`);
     }
 
     const output = await ClassModel.findOne({
-      where: {id: query.id, courseId: query.classId},
+      where: {id: query.classId, courseId: query.courseId},
       include: [{model: CourseModel, as: 'course', attributes: ['name']}],
       useMaster: false,
     });
 
     if (output === null) {
-      throw new NotFoundError(`Class ${query.id} for course ${query.classId} not found`);
+      throw new NotFoundError(`Class ${query.classId} for course ${query.courseId} not found`);
     }
     return {
       id: output.id,

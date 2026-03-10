@@ -9,7 +9,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /courses/{courseId}/classes/{id}:
+ * /courses/{courseId}/classes/{classId}:
  *   delete:
  *     summary: Delete a class
  *     description: Deletes a class. Requires admin privileges.
@@ -25,7 +25,7 @@ const router = express.Router();
  *           format: uuid
  *         description: Course ID
  *       - in: path
- *         name: id
+ *         name: classId
  *         required: true
  *         schema:
  *           type: string
@@ -60,16 +60,16 @@ const router = express.Router();
  *               $ref: '#/components/schemas/ProblemDetails'
  */
 router.delete(
-  '/api/v1/courses/:courseId/classes/:id',
+  '/api/v1/courses/:courseId/classes/:classId',
   [
     requireRole([UserRole.admin]),
-    param('id').isUUID().withMessage('ID must be a valid UUID'),
-    param('courseId').isUUID().withMessage('ID must be a valid UUID'),
+    param('courseId').isUUID().withMessage('courseId must be a valid UUID'),
+    param('classId').isUUID().withMessage('classId must be a valid UUID'),
   ],
   validateRequest,
-  async (req: Request<{courseId: string; id: string}>, res: Response) => {
-    const {id, courseId} = req.params;
-    await mediatR.send(new DeleteClassCommand(courseId, id));
+  async (req: Request<{courseId: string; classId: string}>, res: Response) => {
+    const {classId, courseId} = req.params;
+    await mediatR.send(new DeleteClassCommand(courseId, classId));
     res.status(204).send();
   }
 );
@@ -77,7 +77,7 @@ router.delete(
 export class DeleteClassCommand extends RequestData<void> {
   constructor(
     public readonly courseId: string,
-    public readonly id: string
+    public readonly classId: string
   ) {
     super();
   }
@@ -88,7 +88,7 @@ export class DeleteClassCommand extends RequestData<void> {
 export class DeleteClassCommandHandler implements RequestHandler<DeleteClassCommand, void> {
   async handle(command: DeleteClassCommand): Promise<void> {
     const existingClass = await ClassModel.findOne({
-      where: {id: command.id, courseId: command.courseId},
+      where: {id: command.classId, courseId: command.courseId},
       useMaster: true,
     });
 
@@ -100,7 +100,7 @@ export class DeleteClassCommandHandler implements RequestHandler<DeleteClassComm
       throw new BadRequestError('Can not delete class when it has enrolled users');
     }
 
-    await ClassModel.destroy({where: {id: command.id}});
+    await ClassModel.destroy({where: {id: command.classId}});
   }
 }
 

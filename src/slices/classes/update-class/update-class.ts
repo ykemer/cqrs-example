@@ -18,7 +18,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /courses/{courseId}/classes/{id}:
+ * /courses/{courseId}/classes/{classId}:
  *   put:
  *     summary: Update a class
  *     description: Updates an existing class. Requires admin privileges.
@@ -94,10 +94,10 @@ const router = express.Router();
  *               $ref: '#/components/schemas/ProblemDetails'
  */
 router.put(
-  '/api/v1/courses/:courseId/classes/:id',
+  '/api/v1/courses/:courseId/classes/:classId',
   [
     requireRole([UserRole.admin]),
-    param('id').isUUID().withMessage('ID must be a valid UUID'),
+    param('classId').isUUID().withMessage('ID must be a valid UUID'),
     param('courseId').isUUID().withMessage('ID must be a valid UUID'),
     body('maxUsers').optional().isInt({min: 1}),
     body('registrationDeadline')
@@ -123,11 +123,11 @@ router.put(
     body('endDate').optional().isISO8601().toDate(),
   ],
   validateRequest,
-  async (req: Request<{courseId: string; id: string}>, res: Response) => {
-    const {courseId, id} = req.params;
+  async (req: Request<{courseId: string; classId: string}>, res: Response) => {
+    const {courseId, classId} = req.params;
     const bodyData = matchedData<UpsertClassPayload>(req, {locations: ['body']});
     const command = new UpdateClassCommand();
-    command.id = id;
+    command.id = classId;
     command.courseId = courseId;
     command.maxUsers = bodyData.maxUsers;
     command.registrationDeadline = bodyData.registrationDeadline;
