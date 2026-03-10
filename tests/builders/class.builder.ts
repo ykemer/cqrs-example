@@ -38,3 +38,47 @@ export class ClassBuilder {
     });
   }
 }
+
+type UpsertClassPayload = {
+  maxUsers: number;
+  registrationDeadline: string;
+  startDate: string;
+  endDate: string;
+};
+
+export class CreateClassPayloadBuilder {
+  private data: UpsertClassPayload;
+  constructor() {
+    const now = Date.now();
+    this.data = {
+      maxUsers: 10,
+      registrationDeadline: new Date(now + 3600 * 1000).toISOString(),
+      startDate: new Date(now + 7200 * 1000).toISOString(),
+      endDate: new Date(now + 10800 * 1000).toISOString(),
+    };
+  }
+
+  withMaxUsers(count: number) {
+    this.data.maxUsers = count;
+    return this;
+  }
+
+  withRegistrationDeadline(date: string | Date) {
+    this.data.registrationDeadline = typeof date === 'string' ? date : date.toISOString();
+    return this;
+  }
+
+  withStartDate(date: string | Date) {
+    this.data.startDate = typeof date === 'string' ? date : date.toISOString();
+    return this;
+  }
+
+  withEndDate(date: string | Date) {
+    this.data.endDate = typeof date === 'string' ? date : date.toISOString();
+    return this;
+  }
+
+  build() {
+    return {...this.data};
+  }
+}

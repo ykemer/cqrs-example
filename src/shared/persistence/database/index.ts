@@ -5,7 +5,9 @@ import {getEnvironmentVariables} from '@/shared/utils/utils';
 let sequelize: Sequelize;
 
 if (process.env.NODE_ENV === 'test') {
-  sequelize = new Sequelize('sqlite::memory:', {
+  sequelize = new Sequelize({
+    dialect: 'sqlite',
+    storage: ':memory:',
     logging: false,
   });
 } else {
