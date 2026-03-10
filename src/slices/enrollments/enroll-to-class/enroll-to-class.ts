@@ -99,21 +99,25 @@ export class EnrollToClassCommand extends RequestData<void> {
 @requestHandler(EnrollToClassCommand)
 export class EnrollToClassHandler implements RequestHandler<EnrollToClassCommand, void> {
   async handle(command: EnrollToClassCommand): Promise<void> {
-    // verify the course exists
     const course = await CourseModel.findByPk(command.courseId, {useMaster: false});
     if (!course) {
       throw new NotFoundError(`Course ${command.courseId} not found`);
     }
 
-    // verify the class exists and belongs to the course
-    const classToEnroll = await ClassModel.findByPk(command.classId, {useMaster: false});
-    if (!classToEnroll || classToEnroll.courseId !== command.courseId) {
+    const classToEnroll = await ClassModel.findOne({
+      where: {id: command.classId, courseId: command.courseId},
+      useMaster: false,
+    });
+    if (!classToEnroll) {
       throw new NotFoundError(`Class ${command.classId} not found for course ${command.courseId}`);
     }
 
-    // if registrationDeadline is before now, registration has passed
     if (classToEnroll.registrationDeadline < new Date()) {
       throw new BadRequestError('Registration deadline has passed for this class');
+    }
+
+    if (classToEnroll.maxUsers <= classToEnroll.enrolledUsers + 1) {
+      throw new BadRequestError('Class is full');
     }
 
     const existingEnrollment = await EnrollmentsModel.findOne({

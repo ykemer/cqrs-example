@@ -83,7 +83,6 @@ router.get(
   async (req: Request<{courseId: string; classId: string}>, res: Response) => {
     const {classId, courseId} = req.params;
     const result = await mediatR.send(new GetClassQuery(courseId, classId));
-    if (!result) throw new NotFoundError('Class not found');
     res.status(200).send(result);
   }
 );
@@ -120,7 +119,7 @@ export class GetClassQueryHandler implements RequestHandler<GetClassQuery, Class
       courseId: output.courseId,
       name: course.name,
       maxUsers: output.maxUsers,
-      enrolledUsers: output.enrolledUsers ?? 0,
+      enrolledUsers: output.enrolledUsers,
       registrationDeadline: output.registrationDeadline,
       startDate: output.startDate,
       endDate: output.endDate,

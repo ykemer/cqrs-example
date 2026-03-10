@@ -103,7 +103,7 @@ export class UpdateRefreshTokenCommandHandler implements RequestHandler<
         userId: newTokenEntity.userId,
         token: newTokenEntity.token,
         expiresAt: newTokenEntity.expiresAt,
-        createdAt: newTokenEntity.createdAt ?? new Date(),
+        createdAt: newTokenEntity.createdAt,
       },
       {useMaster: true}
     );

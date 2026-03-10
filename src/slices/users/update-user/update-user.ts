@@ -4,7 +4,6 @@ import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {inject, injectable} from 'tsyringe';
 
 import {
-  BadRequestError,
   DI_TOKENS,
   mediatR,
   NotFoundError,
@@ -12,7 +11,6 @@ import {
   requireRole,
   UserModel,
   UserRole,
-  UserWithPasswordDto,
   validateRequest,
 } from '@/shared';
 
@@ -79,9 +77,8 @@ router.patch(
   '/api/v1/users/:id',
   [
     param('id').isString().notEmpty().isUUID().withMessage('User ID is required'),
-    body('name').optional().isString().trim().notEmpty().withMessage('Name must be a non-empty string'),
+    body('name').isString().trim().notEmpty().withMessage('Name must be a non-empty string'),
     body('password')
-      .optional()
       .isString()
       .trim()
       .notEmpty()
@@ -91,10 +88,10 @@ router.patch(
   ],
   validateRequest,
   requireRole([UserRole.admin]),
-  async (req: Request, res: Response) => {
-    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
-    const updates = matchedData(req, {locations: ['body']});
-    await mediatR.send(new UpdateUserCommand(id, updates));
+  async (req: Request<{id: string}>, res: Response) => {
+    const id = req.params.id;
+    const {name, password} = matchedData(req, {locations: ['body']});
+    await mediatR.send(new UpdateUserCommand(id, name, password));
     res.status(204).send();
   }
 );
@@ -102,7 +99,8 @@ router.patch(
 export class UpdateUserCommand extends RequestData<void> {
   constructor(
     public readonly id: string,
-    public readonly updates: Partial<Omit<UserWithPasswordDto, 'id'>>
+    public readonly name: string,
+    public readonly password: string
   ) {
     super();
   }
@@ -114,24 +112,17 @@ export class UpdateUserCommandHandler implements RequestHandler<UpdateUserComman
   constructor(@inject(DI_TOKENS.PasswordService) private readonly passwordService: PasswordServiceInterface) {}
 
   async handle(input: UpdateUserCommand): Promise<void> {
-    const {id, updates} = input;
+    const {id, name, password} = input;
 
     const existingUser = await UserModel.findByPk(id, {useMaster: false});
     if (!existingUser) {
       throw new NotFoundError('User not found');
     }
 
-    if (Object.keys(updates).length === 0) {
-      throw new BadRequestError('User could not be updated');
-    }
+    existingUser.name = name;
+    existingUser.password = await this.passwordService.encode(password);
 
-    if (updates.password) {
-      updates.password = await this.passwordService.encode(updates.password);
-    }
-
-    await UserModel.update(updates, {
-      where: {id},
-    });
+    await existingUser.save();
   }
 }
 

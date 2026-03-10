@@ -169,7 +169,9 @@ export class UpdateClassCommandHandler implements RequestHandler<UpdateClassComm
       throw new NotFoundError('Course not found');
     }
 
-    const existing = await ClassModel.findByPk(command.id, {useMaster: false});
+    const existing = await ClassModel.findOne({
+      where: {id: command.id, courseId: command.courseId},
+    });
 
     if (existing === null) {
       throw new NotFoundError('Class not found');
@@ -182,10 +184,10 @@ export class UpdateClassCommandHandler implements RequestHandler<UpdateClassComm
     }
 
     existing.set({
-      maxUsers: existing.maxUsers,
-      registrationDeadline: existing.registrationDeadline,
-      startDate: existing.startDate,
-      endDate: existing.endDate,
+      maxUsers: command.maxUsers,
+      registrationDeadline: command.registrationDeadline,
+      startDate: command.startDate,
+      endDate: command.endDate,
       updatedAt: new Date(),
     });
 

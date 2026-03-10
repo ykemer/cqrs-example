@@ -42,17 +42,15 @@ const router = express.Router();
  *       - in: query
  *         name: take
  *         schema:
- *           type: integer
+ *           type: page
  *           minimum: 1
  *           default: 10
- *         description: Number of items to return
  *       - in: query
- *         name: skip
+ *         name: pageSize
  *         schema:
  *           type: integer
  *           minimum: 0
  *           default: 0
- *         description: Number of items to skip
  *     responses:
  *       200:
  *         description: List of classes
@@ -83,8 +81,8 @@ router.get(
   '/api/v1/courses/:courseId/classes',
   [
     param('courseId').isUUID().withMessage('Course ID must be a valid UUID'),
-    query('take').optional().isInt({min: 1}).toInt(),
-    query('skip').optional().isInt({min: 0}).toInt(),
+    query('page').default(1).isInt({min: 1}).toInt().withMessage('page must be a number greater than 0'),
+    query('pageSize').default(10).isInt({min: 1, max: 10}).toInt().withMessage('pageSize must be between 1 and 10'),
   ],
   validateRequest,
   async (req: Request<{courseId: string}>, res: Response) => {

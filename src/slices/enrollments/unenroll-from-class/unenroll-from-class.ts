@@ -43,7 +43,7 @@ const router = express.Router();
  *         description: Class ID
  *     responses:
  *       204:
- *         description: User enrolled
+ *         description: User unenrolled successfully
  *       400:
  *         description: Validation error
  *         content:
@@ -103,9 +103,12 @@ export class UnenrollFromClassHandler implements RequestHandler<UnenrollFromClas
       throw new NotFoundError(`Course ${command.courseId} not found`);
     }
 
-    const classToEnroll = await ClassModel.findByPk(command.classId, {useMaster: false});
+    const classToEnroll = await ClassModel.findOne({
+      where: {id: command.classId, courseId: command.courseId},
+      useMaster: false,
+    });
     if (!classToEnroll) {
-      throw new NotFoundError(`Class ${command.classId} not found`);
+      throw new NotFoundError(`Class ${command.classId} not found for course ${command.courseId}`);
     }
 
     const existingEnrollment = await EnrollmentsModel.findOne({
