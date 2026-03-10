@@ -17,16 +17,6 @@ export class UserModel extends Model<InferAttributes<UserModel>, InferCreationAt
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
 
-  toUserWithPasswordDto(): UserWithPasswordDto {
-    return {
-      id: this.id,
-      name: this.name,
-      email: this.email,
-      password: this.password,
-      role: this.role,
-    };
-  }
-
   toUserDto(): UserDto {
     return {
       id: this.id,
