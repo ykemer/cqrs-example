@@ -56,8 +56,7 @@ export class GetUserProfileQueryHandler implements RequestHandler<GetUserProfile
       throw new NotFoundError('User not found');
     }
 
-    const {password: _password, ...userDto} = existingUser;
-    return userDto;
+    return existingUser.toUserDto();
   }
 }
 

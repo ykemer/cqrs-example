@@ -14,7 +14,7 @@ export class RefreshTokenModel extends Model<
   declare updatedAt: CreationOptional<Date>;
 
   isValid(): boolean {
-    return this.expiresAt && new Date(this.expiresAt).getTime() < Date.now();
+    return this.expiresAt && new Date(this.expiresAt).getTime() > Date.now();
   }
 }
 
