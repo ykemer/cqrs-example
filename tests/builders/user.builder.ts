@@ -1,4 +1,4 @@
-import {UserModel, UserRole} from '@/libs/tools/domain';
+import {UserModel, UserRole} from '../../src/shared';
 
 export class UserBuilder {
   private email = `test-${Math.random()}@example.com`;

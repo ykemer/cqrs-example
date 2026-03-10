@@ -1,10 +1,11 @@
-import {ClassModel} from '@/libs/tools/domain';
+import {ClassModel} from '@/shared';
 
 export class ClassBuilder {
   private registrationDeadline = new Date(Date.now() + 1000 * 60 * 60 * 24); // Tomorrow
   private startDate = new Date(Date.now() + 1000 * 60 * 60 * 24 * 2); // In 2 days
   private endDate = new Date(Date.now() + 1000 * 60 * 60 * 24 * 30); // In 30 days
   private maxUsers = 10;
+  private enrolledUsers = 0;
   private courseId: string;
 
   constructor(courseId: string) {
@@ -13,6 +14,11 @@ export class ClassBuilder {
 
   withMaxUsers(maxUsers: number) {
     this.maxUsers = maxUsers;
+    return this;
+  }
+
+  withEnrolledUsers(enrolledUsers: number) {
+    this.enrolledUsers = enrolledUsers;
     return this;
   }
 
@@ -28,6 +34,7 @@ export class ClassBuilder {
       startDate: this.startDate,
       endDate: this.endDate,
       maxUsers: this.maxUsers,
+      enrolledUsers: this.enrolledUsers,
     });
   }
 }

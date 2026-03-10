@@ -1,4 +1,4 @@
-import {RefreshTokenModel} from '@/libs/tools/domain/persistence/models/refresh-token';
+import {RefreshTokenModel} from '../../src/shared';
 
 export class RefreshTokenBuilder {
   private id = `test-id-${Math.random()}`;

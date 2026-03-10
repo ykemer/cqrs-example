@@ -1,18 +1,28 @@
-import {CourseModel} from '@/libs/tools/domain';
+import {CourseModel} from '@/shared';
 
 export class CourseBuilder {
   private name = 'Test Course';
   private description = 'Test Description';
+
+  static create() {
+    return new CourseBuilder();
+  }
 
   withName(name: string) {
     this.name = name;
     return this;
   }
 
-  async build() {
-    return await CourseModel.create({
-      name: this.name,
-      description: this.description,
-    });
+  withDescription(description: string) {
+    this.description = description;
+    return this;
+  }
+
+  buildPayload() {
+    return {name: this.name, description: this.description};
+  }
+
+  async persist() {
+    return CourseModel.create(this.buildPayload());
   }
 }
