@@ -1,8 +1,12 @@
-import {sequelize} from '@/libs/tools/infrastructure/persistence/config/database';
-import '@/libs/tools/domain/persistence/models';
+// Setup that requires Jest globals (beforeAll/afterAll)
+import {sequelize} from '@/shared/persistence/database';
+import '@/shared/domain/models';
+import {mediatR} from '@/shared/mediatr';
 
 beforeAll(async () => {
   await sequelize.sync({force: true});
+  // Mock publish to resolve by default, as notification handlers might not be loaded or necessary for integration tests
+  jest.spyOn(mediatR, 'publish').mockResolvedValue(undefined);
 });
 
 afterAll(async () => {
