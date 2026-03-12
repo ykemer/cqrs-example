@@ -85,7 +85,7 @@ class ListUsersQuery extends RequestData<ListUsersResponse> {
   take: number;
   skip: number;
 
-  constructor(page: number = 1, pageSize: number = 10) {
+  constructor(page: number, pageSize: number) {
     super();
     this.page = page;
     this.pageSize = pageSize;

@@ -63,8 +63,8 @@ router.delete(
   [param('id').isString().notEmpty().isUUID().withMessage('User ID is required')],
   validateRequest,
   requireRole([UserRole.admin]),
-  async (req: Request, res: Response) => {
-    const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  async (req: Request<{id: string}>, res: Response) => {
+    const id = req.params.id;
     await mediatR.send(new DeleteUserCommand(id));
     res.status(204).send();
   }
