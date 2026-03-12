@@ -41,7 +41,9 @@ describe('Classes - update', () => {
       const course = await createCourse();
       const klass = await createClass(course.id);
       const app = createTestApp({currentUser: {id: 'a', role: UserRole.admin}});
-      const payload = new CreateClassPayloadBuilder().withStartDate(new Date(Date.now() + 20000).toISOString()).build();
+      const payload = new CreateClassPayloadBuilder()
+        .withStartDate(new Date(Date.now() + 30000 * 1000).toISOString())
+        .build();
       const res = await request(app).put(`/api/v1/courses/${course.id}/classes/${klass.id}`).send(payload);
       expect(res.status).toBe(400);
     });

@@ -1,7 +1,7 @@
 describe('mediatr resolver (tsyringe integration)', () => {
   it('resolver.add registers and resolve returns instance', () => {
     jest.isolateModules(() => {
-      const {mediatR} = require('../../../src/shared/mediatr/mediatr');
+      const {mediatR} = require('../../../../src/shared/mediatr/mediatr');
       // Try to find the resolver object on mediatR (implementation detail may vary)
       const candidates: Array<{add: (t: unknown) => void; resolve: (t: unknown) => unknown}> = [];
       for (const key of Object.getOwnPropertyNames(mediatR)) {

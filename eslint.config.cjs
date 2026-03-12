@@ -28,9 +28,8 @@ module.exports = [
         typescript: {project: ['./tsconfig.json']},
       },
       'boundaries/elements': [
-        {type: 'libs', pattern: 'src/libs/**'},
-        {type: 'application', pattern: 'src/application/**'},
-        {type: 'students', pattern: 'src/students/**'},
+        {type: 'shared', pattern: 'src/shared/**'},
+        {type: 'slices', pattern: 'src/slices/**'},
       ],
     },
     rules: {
@@ -46,7 +45,7 @@ module.exports = [
         {
           groups: [
             ['^node:?', '^\\w'],
-            ['^src/libs', '^src/application', '^src/students', '^'],
+            ['^@/shared', '^@/slices', '^'],
             ['^\\./(?=.*/)', '^\\.(?!/?$)', '^\\./?$'],
           ],
         },
@@ -60,9 +59,8 @@ module.exports = [
         {
           default: 'disallow',
           rules: [
-            {from: 'application', allow: ['application', 'libs']},
-            {from: 'students', allow: ['students', 'libs']},
-            {from: 'libs', allow: ['libs']},
+            {from: 'slices', allow: ['shared', 'slices']},
+            {from: 'shared', allow: ['shared']},
           ],
         },
       ],

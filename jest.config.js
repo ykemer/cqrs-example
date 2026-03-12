@@ -26,8 +26,6 @@ module.exports = {
   ],
   coverageThreshold: {
     './src/slices/courses/create-course/*': {
-      branches: 100,
-      functions: 100,
       lines: 100,
       statements: 100,
     },

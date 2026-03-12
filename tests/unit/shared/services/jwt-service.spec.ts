@@ -22,7 +22,7 @@ describe('jwt service', () => {
         isObject: (v: unknown) => typeof v === 'object' && v !== null && !Array.isArray(v),
         isString: (v: unknown) => typeof v === 'string',
       }));
-      const {jwtServiceCreator} = require('../../../src/shared/services/jwt-service');
+      const {jwtServiceCreator} = require('../../../../src/shared/services/jwt-service');
       const svc = jwtServiceCreator();
       const payload: {id: string; email: string; role: string; name: string} = {
         id: '1',
@@ -38,7 +38,7 @@ describe('jwt service', () => {
 
   it('returns payload for valid token', () => {
     jest.isolateModules(() => {
-      const {jwtServiceCreator} = require('../../../src/shared/services/jwt-service');
+      const {jwtServiceCreator} = require('../../../../src/shared/services/jwt-service');
       const svc = jwtServiceCreator();
       const token = jwt.sign({id: '1', email: 'a@b', role: 'admin', name: 'n'}, 'sign', {
         issuer: 'iss',
@@ -52,7 +52,7 @@ describe('jwt service', () => {
 
   it('returns null for invalid token', () => {
     jest.isolateModules(() => {
-      const {jwtServiceCreator} = require('../../../src/shared/services/jwt-service');
+      const {jwtServiceCreator} = require('../../../../src/shared/services/jwt-service');
       const svc = jwtServiceCreator();
       expect(svc.getPayload('badtoken')).toBeNull();
     });
