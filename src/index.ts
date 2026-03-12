@@ -5,7 +5,6 @@ dotenv.config();
 import express, {json, Request, Response} from 'express';
 import {rateLimit} from 'express-rate-limit';
 
-import 'reflect-metadata';
 import {
   accessLogger,
   createHealthService,
@@ -23,6 +22,7 @@ import {registerClassRoutes} from '@/slices/classes';
 import {registerCourseRoutes} from '@/slices/courses';
 import {registerEnrollmentsRoutes} from '@/slices/enrollments';
 import {registerUserRoutes} from '@/slices/users';
+import 'reflect-metadata';
 
 const app = express();
 
