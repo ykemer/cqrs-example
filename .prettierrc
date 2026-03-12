@@ -5,6 +5,5 @@
   "tabWidth": 2,
   "useTabs": false,
   "bracketSpacing": false,
-  "arrowParens": "avoid",
-  "organizeImportsSkipDestructiveCodeActions": true
+  "arrowParens": "avoid"
 }

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["src/index.ts", "src/shared/persistence/migrations/*.js", "src/shared/persistence/seeders/*.js"],
+  "project": ["src/**/*.ts"],
+  "ignore": ["**/*.spec.ts", "tests/**/*"],
+  "ignoreDependencies": [
+    "@types/bcrypt",
+    "@types/express",
+    "@types/jest",
+    "@types/jsonwebtoken",
+    "@types/sequelize",
+    "@types/swagger-jsdoc",
+    "@types/winston",
+    "@types/supertest",
+    "pg-hstore",
+    "sqlite3",
+    "sequelize-cli"
+  ]
+}
