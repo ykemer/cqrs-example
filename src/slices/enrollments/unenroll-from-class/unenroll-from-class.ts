@@ -11,6 +11,7 @@ import {
   mediatR,
   NotFoundError,
   requireAuth,
+  sequelize,
   validateRequest,
 } from '@/shared';
 import {UserUnenrolledEvent} from '@/shared/domain/events';
@@ -98,32 +99,37 @@ export class UnenrollFromClassCommand extends RequestData<void> {
 @requestHandler(UnenrollFromClassCommand)
 export class UnenrollFromClassHandler implements RequestHandler<UnenrollFromClassCommand, void> {
   async handle(command: UnenrollFromClassCommand): Promise<void> {
-    const course = await CourseModel.findByPk(command.courseId, {useMaster: false});
-    if (!course) {
-      throw new NotFoundError(`Course ${command.courseId} not found`);
-    }
+    return await sequelize.transaction(async t => {
+      const course = await CourseModel.findByPk(command.courseId, {transaction: t, useMaster: true});
+      if (!course) {
+        throw new NotFoundError(`Course ${command.courseId} not found`);
+      }
 
-    const classToEnroll = await ClassModel.findOne({
-      where: {id: command.classId, courseId: command.courseId},
-      useMaster: false,
+      const classToEnroll = await ClassModel.findOne({
+        where: {id: command.classId, courseId: command.courseId},
+        transaction: t,
+        useMaster: true,
+      });
+      if (!classToEnroll) {
+        throw new NotFoundError(`Class ${command.classId} not found for course ${command.courseId}`);
+      }
+
+      const existingEnrollment = await EnrollmentsModel.findOne({
+        where: {
+          classId: command.classId,
+          userId: command.userId,
+        },
+        transaction: t,
+        useMaster: true,
+      });
+
+      if (existingEnrollment === null) {
+        throw new ConflictError('User is not enrolled to this class');
+      }
+
+      await existingEnrollment.destroy({transaction: t});
+      await mediatR.publish(new UserUnenrolledEvent(command.userId, command.classId));
     });
-    if (!classToEnroll) {
-      throw new NotFoundError(`Class ${command.classId} not found for course ${command.courseId}`);
-    }
-
-    const existingEnrollment = await EnrollmentsModel.findOne({
-      where: {
-        classId: command.classId,
-        userId: command.userId,
-      },
-    });
-
-    if (existingEnrollment === null) {
-      throw new ConflictError('User is not enrolled to this class');
-    }
-
-    await existingEnrollment.destroy();
-    await mediatR.publish(new UserUnenrolledEvent(command.userId, command.classId));
   }
 }
 

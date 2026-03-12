@@ -12,6 +12,7 @@ import {
   mediatR,
   NotFoundError,
   requireAuth,
+  sequelize,
   validateRequest,
 } from '@/shared';
 import {UserEnrolledEvent} from '@/shared/domain/events';
@@ -99,44 +100,52 @@ export class EnrollToClassCommand extends RequestData<void> {
 @requestHandler(EnrollToClassCommand)
 export class EnrollToClassHandler implements RequestHandler<EnrollToClassCommand, void> {
   async handle(command: EnrollToClassCommand): Promise<void> {
-    const course = await CourseModel.findByPk(command.courseId, {useMaster: false});
-    if (!course) {
-      throw new NotFoundError(`Course ${command.courseId} not found`);
-    }
+    return await sequelize.transaction(async t => {
+      const course = await CourseModel.findByPk(command.courseId, {transaction: t, useMaster: true});
+      if (!course) {
+        throw new NotFoundError(`Course ${command.courseId} not found`);
+      }
 
-    const classToEnroll = await ClassModel.findOne({
-      where: {id: command.classId, courseId: command.courseId},
-      useMaster: false,
+      const classToEnroll = await ClassModel.findOne({
+        where: {id: command.classId, courseId: command.courseId},
+        transaction: t,
+        useMaster: true,
+      });
+      if (!classToEnroll) {
+        throw new NotFoundError(`Class ${command.classId} not found for course ${command.courseId}`);
+      }
+
+      if (classToEnroll.registrationDeadline < new Date()) {
+        throw new BadRequestError('Registration deadline has passed for this class');
+      }
+
+      if (classToEnroll.maxUsers <= classToEnroll.enrolledUsers) {
+        throw new BadRequestError('Class is full');
+      }
+
+      const existingEnrollment = await EnrollmentsModel.findOne({
+        where: {
+          classId: command.classId,
+          userId: command.userId,
+        },
+        transaction: t,
+        useMaster: true,
+      });
+
+      if (existingEnrollment !== null) {
+        throw new ConflictError('User is already enrolled to this class');
+      }
+
+      await EnrollmentsModel.create(
+        {
+          classId: command.classId,
+          userId: command.userId,
+        },
+        {transaction: t, useMaster: true}
+      );
+
+      await mediatR.publish(new UserEnrolledEvent(command.userId, command.classId));
     });
-    if (!classToEnroll) {
-      throw new NotFoundError(`Class ${command.classId} not found for course ${command.courseId}`);
-    }
-
-    if (classToEnroll.registrationDeadline < new Date()) {
-      throw new BadRequestError('Registration deadline has passed for this class');
-    }
-
-    if (classToEnroll.maxUsers <= classToEnroll.enrolledUsers + 1) {
-      throw new BadRequestError('Class is full');
-    }
-
-    const existingEnrollment = await EnrollmentsModel.findOne({
-      where: {
-        classId: command.classId,
-        userId: command.userId,
-      },
-    });
-
-    if (existingEnrollment !== null) {
-      throw new ConflictError('User is already enrolled to this class');
-    }
-
-    await EnrollmentsModel.create({
-      classId: command.classId,
-      userId: command.userId,
-    });
-
-    await mediatR.publish(new UserEnrolledEvent(command.userId, command.classId));
   }
 }
 
