@@ -1,6 +1,6 @@
 import {CreationOptional, DataTypes, InferAttributes, InferCreationAttributes, Model} from 'sequelize';
 
-import {UserDto, UserWithPasswordDto} from '@/shared/domain/dto';
+import {UserDto} from '@/shared/domain/dto';
 import {sequelize} from '@/shared/persistence/database';
 
 export enum UserRole {
