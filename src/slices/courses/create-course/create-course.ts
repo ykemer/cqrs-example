@@ -3,7 +3,7 @@ import {body, matchedData} from 'express-validator';
 import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {injectable} from 'tsyringe';
 
-import {CourseModel, mediatR, requireRole, UserRole, validateRequest} from '@/shared';
+import {CourseModel, mediatR, requireRole, sequelize, UserRole, validateRequest} from '@/shared';
 import {CourseDto} from '@/shared/domain/dto/course-dto';
 
 const router = express.Router();
@@ -90,20 +90,22 @@ class CreateCourseCommand extends RequestData<CourseDto> {
 export class CreateCourseCommandHandler implements RequestHandler<CreateCourseCommand, CourseDto> {
   async handle(input: CreateCourseCommand): Promise<CourseDto> {
     const {name, description} = input;
-    const created = await CourseModel.create(
-      {
-        name,
-        description,
-      },
-      {useMaster: true}
-    );
+    return await sequelize.transaction(async t => {
+      const created = await CourseModel.create(
+        {
+          name,
+          description,
+        },
+        {transaction: t, useMaster: true}
+      );
 
-    return {
-      id: created.id,
-      name: created.name,
-      description: created.description,
-      enrolledUsers: created.enrolledUsers ?? 0,
-    };
+      return {
+        id: created.id,
+        name: created.name,
+        description: created.description,
+        enrolledUsers: created.enrolledUsers ?? 0,
+      };
+    });
   }
 }
 

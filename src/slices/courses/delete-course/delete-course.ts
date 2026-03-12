@@ -3,7 +3,16 @@ import {param} from 'express-validator';
 import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {injectable} from 'tsyringe';
 
-import {BadRequestError, CourseModel, mediatR, NotFoundError, requireRole, UserRole, validateRequest} from '@/shared';
+import {
+  BadRequestError,
+  CourseModel,
+  mediatR,
+  NotFoundError,
+  requireRole,
+  sequelize,
+  UserRole,
+  validateRequest,
+} from '@/shared';
 
 const router = express.Router();
 
@@ -82,16 +91,18 @@ export class DeleteCourseCommandHandler implements RequestHandler<DeleteCourseCo
   async handle(input: DeleteCourseCommand): Promise<void> {
     const {id} = input;
 
-    const course = await CourseModel.findByPk(id, {useMaster: false});
-    if (!course) {
-      throw new NotFoundError('Course not found');
-    }
+    await sequelize.transaction(async t => {
+      const course = await CourseModel.findByPk(id, {transaction: t, useMaster: true});
+      if (!course) {
+        throw new NotFoundError('Course not found');
+      }
 
-    if (course.enrolledUsers > 0) {
-      throw new BadRequestError('Cannot delete a course with enrolled users');
-    }
+      if (course.enrolledUsers > 0) {
+        throw new BadRequestError('Cannot delete a course with enrolled users');
+      }
 
-    await CourseModel.destroy({where: {id: course.id}});
+      await CourseModel.destroy({where: {id: course.id}, transaction: t});
+    });
   }
 }
 

@@ -3,7 +3,7 @@ import {body, matchedData, param} from 'express-validator';
 import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {injectable} from 'tsyringe';
 
-import {CourseModel, mediatR, NotFoundError, requireRole, UserRole, validateRequest} from '@/shared';
+import {CourseModel, mediatR, NotFoundError, requireRole, sequelize, UserRole, validateRequest} from '@/shared';
 
 const router = express.Router();
 
@@ -103,18 +103,20 @@ export class UpdateCourseCommandHandler implements RequestHandler<UpdateCourseCo
   async handle(input: UpdateCourseCommand): Promise<void> {
     const {id, name, description} = input;
 
-    const course = await CourseModel.findByPk(id, {useMaster: false});
-    if (!course) {
-      throw new NotFoundError('Course not found');
-    }
+    await sequelize.transaction(async t => {
+      const course = await CourseModel.findByPk(id, {transaction: t, useMaster: true});
+      if (!course) {
+        throw new NotFoundError('Course not found');
+      }
 
-    course.set({
-      name,
-      description,
-      updatedAt: new Date(),
+      course.set({
+        name,
+        description,
+        updatedAt: new Date(),
+      });
+
+      await course.save({transaction: t});
     });
-
-    await course.save();
   }
 }
 
