@@ -13,6 +13,7 @@ import {
   validateRequest,
 } from '@/shared';
 import {mediatR} from '@/shared/mediatr';
+import {sequelize} from '@/shared/persistence/database';
 import {RefreshTokenServiceInterface} from '@/shared/services/refresh-rokens-service';
 
 const router = express.Router();
@@ -91,40 +92,42 @@ export class LoginCommandHandler implements RequestHandler<LoginCommand, LoginUs
   async handle(input: LoginCommand): Promise<LoginUserResponse> {
     const {email, password} = input;
 
-    const existingUser = await UserModel.findOne({where: {email}, useMaster: false});
-    if (!existingUser) {
-      throw new BadRequestError('Invalid credentials');
-    }
+    return await sequelize.transaction(async t => {
+      const existingUser = await UserModel.findOne({where: {email}, useMaster: true, transaction: t});
+      if (!existingUser) {
+        throw new BadRequestError('Invalid credentials');
+      }
 
-    const passwordMatch = await this.passwordService.compare(password, existingUser.password);
-    if (!passwordMatch) {
-      throw new BadRequestError('Invalid credentials');
-    }
+      const passwordMatch = await this.passwordService.compare(password, existingUser.password);
+      if (!passwordMatch) {
+        throw new BadRequestError('Invalid credentials');
+      }
 
-    const jwtResponse = this.jwtService.getSignedJwtTokenResponse({
-      id: existingUser.id,
-      email: existingUser.email,
-      name: existingUser.name,
-      role: existingUser.role,
+      const jwtResponse = this.jwtService.getSignedJwtTokenResponse({
+        id: existingUser.id,
+        email: existingUser.email,
+        name: existingUser.name,
+        role: existingUser.role,
+      });
+
+      const refreshTokenEntity = this.refreshTokenService.generateRefreshToken(existingUser.id);
+      await RefreshTokenModel.create(
+        {
+          id: refreshTokenEntity.id,
+          userId: refreshTokenEntity.userId,
+          token: refreshTokenEntity.token,
+          expiresAt: refreshTokenEntity.expiresAt,
+          createdAt: refreshTokenEntity.createdAt ?? new Date(),
+        },
+        {useMaster: true, transaction: t}
+      );
+
+      return {
+        access_token: jwtResponse.access_token,
+        expires_in: jwtResponse.expires_in,
+        refreshToken: refreshTokenEntity.token,
+      };
     });
-
-    const refreshTokenEntity = this.refreshTokenService.generateRefreshToken(existingUser.id);
-    await RefreshTokenModel.create(
-      {
-        id: refreshTokenEntity.id,
-        userId: refreshTokenEntity.userId,
-        token: refreshTokenEntity.token,
-        expiresAt: refreshTokenEntity.expiresAt,
-        createdAt: refreshTokenEntity.createdAt ?? new Date(),
-      },
-      {useMaster: true}
-    );
-
-    return {
-      access_token: jwtResponse.access_token,
-      expires_in: jwtResponse.expires_in,
-      refreshToken: refreshTokenEntity.token,
-    };
   }
 }
 

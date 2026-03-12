@@ -5,6 +5,7 @@ import {inject, injectable} from 'tsyringe';
 
 import {BadRequestError, DI_TOKENS, JwtServiceInterface, RefreshTokenModel, UserModel, validateRequest} from '@/shared';
 import {mediatR} from '@/shared/mediatr';
+import {sequelize} from '@/shared/persistence/database';
 import {RefreshTokenServiceInterface} from '@/shared/services/refresh-rokens-service';
 
 const router = express.Router();
@@ -82,44 +83,50 @@ export class UpdateRefreshTokenCommandHandler implements RequestHandler<
   ) {}
 
   async handle(input: UpdateRefreshTokenCommand) {
-    const existing = await RefreshTokenModel.findOne({where: {token: input.refreshToken}, useMaster: false});
-    if (!existing) {
-      throw new BadRequestError('Invalid refresh token');
-    }
+    return await sequelize.transaction(async t => {
+      const existing = await RefreshTokenModel.findOne({
+        where: {token: input.refreshToken},
+        useMaster: true,
+        transaction: t,
+      });
+      if (!existing) {
+        throw new BadRequestError('Invalid refresh token');
+      }
 
-    if (!existing.isValid()) {
-      throw new BadRequestError('Refresh token expired');
-    }
+      if (!existing.isValid()) {
+        throw new BadRequestError('Refresh token expired');
+      }
 
-    const user = await UserModel.findByPk(existing.userId, {useMaster: false});
-    if (!user) throw new BadRequestError('Invalid refresh token');
+      const user = await UserModel.findByPk(existing.userId, {useMaster: true, transaction: t});
+      if (!user) throw new BadRequestError('Invalid refresh token');
 
-    await RefreshTokenModel.destroy({where: {id: existing.id}});
+      await RefreshTokenModel.destroy({where: {id: existing.id}, transaction: t});
 
-    const newTokenEntity = this.refreshTokenService.generateRefreshToken(user.id);
-    await RefreshTokenModel.create(
-      {
-        id: newTokenEntity.id,
-        userId: newTokenEntity.userId,
-        token: newTokenEntity.token,
-        expiresAt: newTokenEntity.expiresAt,
-        createdAt: newTokenEntity.createdAt,
-      },
-      {useMaster: true}
-    );
+      const newTokenEntity = this.refreshTokenService.generateRefreshToken(user.id);
+      await RefreshTokenModel.create(
+        {
+          id: newTokenEntity.id,
+          userId: newTokenEntity.userId,
+          token: newTokenEntity.token,
+          expiresAt: newTokenEntity.expiresAt,
+          createdAt: newTokenEntity.createdAt,
+        },
+        {useMaster: true, transaction: t}
+      );
 
-    const jwtResponse = this.jwtService.getSignedJwtTokenResponse({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
+      const jwtResponse = this.jwtService.getSignedJwtTokenResponse({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+      });
+
+      return {
+        access_token: jwtResponse.access_token,
+        expires_in: jwtResponse.expires_in,
+        refreshToken: newTokenEntity.token,
+      };
     });
-
-    return {
-      access_token: jwtResponse.access_token,
-      expires_in: jwtResponse.expires_in,
-      refreshToken: newTokenEntity.token,
-    };
   }
 }
 

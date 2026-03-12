@@ -5,6 +5,7 @@ import {inject, injectable} from 'tsyringe';
 
 import {ConflictError, DI_TOKENS, PasswordServiceInterface, UserModel, validateRequest} from '@/shared';
 import {mediatR} from '@/shared/mediatr';
+import {sequelize} from '@/shared/persistence/database';
 
 const router = express.Router();
 
@@ -76,13 +77,15 @@ export class RegisterCommandHandler implements RequestHandler<RegisterCommand, v
   async handle(input: RegisterCommand): Promise<void> {
     const {name, email, password} = input;
 
-    const existingUser = await UserModel.findOne({where: {email}});
-    if (existingUser) {
-      throw new ConflictError('User already exists');
-    }
+    await sequelize.transaction(async t => {
+      const existingUser = await UserModel.findOne({where: {email}, useMaster: true, transaction: t});
+      if (existingUser) {
+        throw new ConflictError('User already exists');
+      }
 
-    const hashedPassword = await this.passwordService.encode(password);
-    await UserModel.create({name, email, password: hashedPassword}, {useMaster: true});
+      const hashedPassword = await this.passwordService.encode(password);
+      await UserModel.create({name, email, password: hashedPassword}, {useMaster: true, transaction: t});
+    });
   }
 }
 
