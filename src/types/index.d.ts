@@ -12,6 +12,7 @@ declare global {
 // Sequelize's CreateOptions does not extend Poolable, so `useMaster` is missing.
 // Augment it here so write operations can explicitly target the master node.
 declare module 'sequelize' {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface CreateOptions<TAttributes = any> {
     useMaster?: boolean;
   }
