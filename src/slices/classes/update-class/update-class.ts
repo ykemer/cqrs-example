@@ -10,6 +10,7 @@ import {
   mediatR,
   NotFoundError,
   requireRole,
+  sequelize,
   UserRole,
   validateRequest,
 } from '@/shared';
@@ -159,39 +160,44 @@ type UpsertClassPayload = {
 @requestHandler(UpdateClassCommand)
 export class UpdateClassCommandHandler implements RequestHandler<UpdateClassCommand, void> {
   async handle(command: UpdateClassCommand): Promise<void> {
-    const course = await CourseModel.findOne({
-      where: {id: command.courseId},
-      attributes: ['name'],
-      useMaster: true,
+    return await sequelize.transaction(async t => {
+      const course = await CourseModel.findOne({
+        where: {id: command.courseId},
+        attributes: ['name'],
+        transaction: t,
+        useMaster: true,
+      });
+
+      if (course === null) {
+        throw new NotFoundError('Course not found');
+      }
+
+      const existing = await ClassModel.findOne({
+        where: {id: command.id, courseId: command.courseId},
+        transaction: t,
+        useMaster: true,
+      });
+
+      if (existing === null) {
+        throw new NotFoundError('Class not found');
+      }
+
+      if (existing.enrolledUsers > command.maxUsers) {
+        throw new BadRequestError(
+          `Cannot set max users to ${command.maxUsers} because there are already ${existing.enrolledUsers} enrolled users`
+        );
+      }
+
+      existing.set({
+        maxUsers: command.maxUsers,
+        registrationDeadline: command.registrationDeadline,
+        startDate: command.startDate,
+        endDate: command.endDate,
+        updatedAt: new Date(),
+      });
+
+      await existing.save({transaction: t});
     });
-
-    if (course === null) {
-      throw new NotFoundError('Course not found');
-    }
-
-    const existing = await ClassModel.findOne({
-      where: {id: command.id, courseId: command.courseId},
-    });
-
-    if (existing === null) {
-      throw new NotFoundError('Class not found');
-    }
-
-    if (existing.enrolledUsers > command.maxUsers) {
-      throw new BadRequestError(
-        `Cannot set max users to ${command.maxUsers} because there are already ${existing.enrolledUsers} enrolled users`
-      );
-    }
-
-    existing.set({
-      maxUsers: command.maxUsers,
-      registrationDeadline: command.registrationDeadline,
-      startDate: command.startDate,
-      endDate: command.endDate,
-      updatedAt: new Date(),
-    });
-
-    await existing.save();
   }
 }
 

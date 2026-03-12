@@ -3,7 +3,16 @@ import {param} from 'express-validator';
 import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {injectable} from 'tsyringe';
 
-import {BadRequestError, ClassModel, mediatR, NotFoundError, requireRole, UserRole, validateRequest} from '@/shared';
+import {
+  BadRequestError,
+  ClassModel,
+  mediatR,
+  NotFoundError,
+  requireRole,
+  sequelize,
+  UserRole,
+  validateRequest,
+} from '@/shared';
 
 const router = express.Router();
 
@@ -87,20 +96,23 @@ export class DeleteClassCommand extends RequestData<void> {
 @requestHandler(DeleteClassCommand)
 export class DeleteClassCommandHandler implements RequestHandler<DeleteClassCommand, void> {
   async handle(command: DeleteClassCommand): Promise<void> {
-    const existingClass = await ClassModel.findOne({
-      where: {id: command.classId, courseId: command.courseId},
-      useMaster: true,
+    return await sequelize.transaction(async t => {
+      const existingClass = await ClassModel.findOne({
+        where: {id: command.classId, courseId: command.courseId},
+        transaction: t,
+        useMaster: true,
+      });
+
+      if (existingClass === null) {
+        throw new NotFoundError('Class not found');
+      }
+
+      if (existingClass.enrolledUsers > 0) {
+        throw new BadRequestError('Can not delete class when it has enrolled users');
+      }
+
+      await ClassModel.destroy({where: {id: command.classId}, transaction: t});
     });
-
-    if (existingClass === null) {
-      throw new NotFoundError('Class not found');
-    }
-
-    if (existingClass.enrolledUsers > 0) {
-      throw new BadRequestError('Can not delete class when it has enrolled users');
-    }
-
-    await ClassModel.destroy({where: {id: command.classId}});
   }
 }
 

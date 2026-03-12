@@ -10,6 +10,7 @@ import {
   mediatR,
   NotFoundError,
   requireRole,
+  sequelize,
   UserRole,
   validateRequest,
 } from '@/shared';
@@ -147,28 +148,31 @@ class CreateClassCommand extends RequestData<ClassDto> {
 @requestHandler(CreateClassCommand)
 export class CreateClassCommandHandler implements RequestHandler<CreateClassCommand, ClassDto> {
   async handle(command: CreateClassCommand): Promise<ClassDto> {
-    const course = await CourseModel.findOne({
-      where: {id: command.courseId},
-      attributes: ['name'],
-      useMaster: true,
+    return await sequelize.transaction(async t => {
+      const course = await CourseModel.findOne({
+        where: {id: command.courseId},
+        attributes: ['name'],
+        transaction: t,
+        useMaster: true,
+      });
+
+      if (course === null) {
+        throw new NotFoundError('Course not found');
+      }
+
+      const created = await ClassModel.create(
+        {
+          courseId: command.courseId,
+          maxUsers: command.maxUsers,
+          registrationDeadline: command.registrationDeadline,
+          startDate: command.startDate,
+          endDate: command.endDate,
+        },
+        {transaction: t, useMaster: true}
+      );
+
+      return created.toClassDto(course.name);
     });
-
-    if (course === null) {
-      throw new NotFoundError('Course not found');
-    }
-
-    const created = await ClassModel.create(
-      {
-        courseId: command.courseId,
-        maxUsers: command.maxUsers,
-        registrationDeadline: command.registrationDeadline,
-        startDate: command.startDate,
-        endDate: command.endDate,
-      },
-      {useMaster: true}
-    );
-
-    return created.toClassDto(course.name);
   }
 }
 
