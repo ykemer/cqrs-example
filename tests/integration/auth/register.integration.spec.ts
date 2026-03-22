@@ -39,7 +39,7 @@ describe('POST /api/v1/auth/register', () => {
   describe('Success cases', () => {
     it('should return 204 on successful registration', async () => {
       const app = createTestApp();
-      const payload = {email: 'new@test.com', name: 'New User', password: 'password123'};
+      const payload = {email: 'new@test.com', name: 'User', password: 'password123'};
       const res = await request(app).post('/api/v1/auth/register').send(payload);
 
       expect(res.status).toBe(204);

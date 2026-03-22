@@ -19,6 +19,7 @@ addFormats(ajv);
 const compileSchema2019 = <T = unknown>(schema: JSONSchemaType<T>, _meta?: boolean) => ajv.compile(schema, _meta);
 
 const VALIDATION_HELPERS = {
+  ALPHANUMERIC_STRING: {format: 'alphanumeric', minLength: 3, maxLength: 255},
   REGULAR_STRING: {format: 'noHtmlJs', minLength: 3, maxLength: 255},
   PASSWORD_STRING: {minLength: 6, maxLength: 255},
   LONG_TEXT_STRING: {format: 'noHtmlJs', minLength: 3, maxLength: 1000},

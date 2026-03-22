@@ -10,7 +10,7 @@ export const REGISTER_BODY_SCHEMA: JSONSchemaType<RegisterBody> = {
   type: 'object',
   properties: {
     email: {type: 'string', ...VALIDATION_HELPERS.EMAIL_STRING},
-    name: {type: 'string', ...VALIDATION_HELPERS.REGULAR_STRING},
+    name: {type: 'string', ...VALIDATION_HELPERS.ALPHANUMERIC_STRING},
     password: {type: 'string', ...VALIDATION_HELPERS.PASSWORD_STRING},
   },
   required: ['email', 'name', 'password'],
