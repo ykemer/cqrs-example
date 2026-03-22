@@ -1,4 +1,5 @@
 import {UserModel, UserRole} from '../../src/shared';
+import {passwordServiceCreator} from '../../src/shared/services/password-service';
 
 export class UserBuilder {
   private email = `test-${Math.random()}@example.com`;
@@ -22,10 +23,12 @@ export class UserBuilder {
   }
 
   async build() {
+    const passwordService = passwordServiceCreator();
+    const hashedPassword = await passwordService.encode(this.password);
     return await UserModel.create({
       email: this.email,
       name: this.name,
-      password: this.password,
+      password: hashedPassword,
       role: this.role,
     });
   }
