@@ -1,10 +1,12 @@
 import express, {Request, Response} from 'express';
-import {body, matchedData} from 'express-validator';
 import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {injectable} from 'tsyringe';
 
-import {CourseModel, mediatR, requireRole, sequelize, UserRole, validateRequest} from '@/shared';
+import {CourseModel, mediatR, requireRole, sequelize, UserRole} from '@/shared';
 import {CourseDto} from '@/shared/domain/dto/course-dto';
+import {validate} from '@/shared/middleware';
+
+import {CREATE_COURSE_BODY_SCHEMA} from './create-course.schema';
 
 const router = express.Router();
 
@@ -63,20 +65,16 @@ const router = express.Router();
  */
 router.post(
   '/api/v1/courses',
-  [
-    body('name').trim().notEmpty().withMessage('Name is required'),
-    body('description').trim().notEmpty().withMessage('Description is required'),
-  ],
-  validateRequest,
+  validate({body: CREATE_COURSE_BODY_SCHEMA}),
   requireRole([UserRole.admin]),
   async (req: Request, res: Response) => {
-    const {name, description} = matchedData(req, {locations: ['body']});
+    const {name, description} = req.body;
     const course = await mediatR.send(new CreateCourseCommand(name, description));
     res.status(201).send(course);
   }
 );
 
-class CreateCourseCommand extends RequestData<CourseDto> {
+export class CreateCourseCommand extends RequestData<CourseDto> {
   constructor(
     public readonly name: string,
     public readonly description: string

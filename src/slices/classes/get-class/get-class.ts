@@ -1,18 +1,16 @@
 import express, {Request, Response} from 'express';
-import {param} from 'express-validator';
 import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {injectable} from 'tsyringe';
 
-import {
-  ClassDto,
-  ClassModel,
-  CourseModel,
-  mediatR,
-  NotFoundError,
-  requireRole,
-  UserRole,
-  validateRequest,
-} from '@/shared';
+import {ClassDto, ClassModel, CourseModel, mediatR, NotFoundError, requireRole, UserRole} from '@/shared';
+import {validate} from '@/shared/middleware';
+
+import {GET_CLASS_PARAMS_SCHEMA} from './get-class.schema';
+
+type GetClassParams = {
+  courseId: string;
+  classId: string;
+};
 
 const router = express.Router();
 
@@ -74,14 +72,11 @@ const router = express.Router();
  */
 router.get(
   '/api/v1/courses/:courseId/classes/:classId',
+  validate<GetClassParams>({params: GET_CLASS_PARAMS_SCHEMA}),
   requireRole([UserRole.admin]),
-  [
-    param('courseId').isUUID().withMessage('courseId must be a valid UUID'),
-    param('classId').isUUID().withMessage('classId must be a valid UUID'),
-  ],
-  validateRequest,
-  async (req: Request<{courseId: string; classId: string}>, res: Response) => {
-    const {classId, courseId} = req.params;
+  async (req: Request, res: Response) => {
+    const classId = req.params.classId as string;
+    const courseId = req.params.courseId as string;
     const result = await mediatR.send(new GetClassQuery(courseId, classId));
     res.status(200).send(result);
   }

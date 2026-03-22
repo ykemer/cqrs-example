@@ -1,18 +1,11 @@
 import express, {Request, Response} from 'express';
-import {body, matchedData, param} from 'express-validator';
 import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {inject, injectable} from 'tsyringe';
 
-import {
-  DI_TOKENS,
-  mediatR,
-  NotFoundError,
-  PasswordServiceInterface,
-  requireRole,
-  UserModel,
-  UserRole,
-  validateRequest,
-} from '@/shared';
+import {DI_TOKENS, mediatR, NotFoundError, PasswordServiceInterface, requireRole, UserModel, UserRole} from '@/shared';
+import {validate} from '@/shared/middleware';
+
+import {UPDATE_USER_BODY_SCHEMA, UPDATE_USER_PARAMS_SCHEMA} from './update-user.schema';
 
 const router = express.Router();
 
@@ -75,22 +68,11 @@ const router = express.Router();
  */
 router.patch(
   '/api/v1/users/:id',
-  [
-    param('id').isString().notEmpty().isUUID().withMessage('User ID is required'),
-    body('name').isString().trim().notEmpty().withMessage('Name must be a non-empty string'),
-    body('password')
-      .isString()
-      .trim()
-      .notEmpty()
-      .isLength({min: 4, max: 20})
-      .withMessage('Password must be between 4 and 20 characters'),
-    body('role').optional().isIn(Object.values(UserRole)).withMessage('Role must be valid'),
-  ],
-  validateRequest,
+  validate({params: UPDATE_USER_PARAMS_SCHEMA, body: UPDATE_USER_BODY_SCHEMA}),
   requireRole([UserRole.admin]),
-  async (req: Request<{id: string}>, res: Response) => {
-    const id = req.params.id;
-    const {name, password} = matchedData(req, {locations: ['body']});
+  async (req: Request, res: Response) => {
+    const id = req.params.id as string;
+    const {name, password} = req.body;
     await mediatR.send(new UpdateUserCommand(id, name, password));
     res.status(204).send();
   }

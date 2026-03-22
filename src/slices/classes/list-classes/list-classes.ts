@@ -1,5 +1,4 @@
 import express, {Request, Response} from 'express';
-import {matchedData, param, query} from 'express-validator';
 import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {Op, Sequelize} from 'sequelize';
 import {injectable} from 'tsyringe';
@@ -14,8 +13,19 @@ import {
   PaginatedRequest,
   PaginatedResponse,
   UserRole,
-  validateRequest,
 } from '@/shared';
+import {validate} from '@/shared/middleware';
+
+import {LIST_CLASSES_PARAMS_SCHEMA, LIST_CLASSES_QUERY_SCHEMA} from './list-classes.schema';
+
+type ListClassesParams = {
+  courseId: string;
+};
+
+type ListClassesQueryParams = {
+  page: number;
+  pageSize: number;
+};
 
 const router = express.Router();
 
@@ -79,15 +89,13 @@ const router = express.Router();
  */
 router.get(
   '/api/v1/courses/:courseId/classes',
-  [
-    param('courseId').isUUID().withMessage('Course ID must be a valid UUID'),
-    query('page').default(1).isInt({min: 1}).toInt().withMessage('page must be a number greater than 0'),
-    query('pageSize').default(10).isInt({min: 1, max: 10}).toInt().withMessage('pageSize must be between 1 and 10'),
-  ],
-  validateRequest,
-  async (req: Request<{courseId: string}>, res: Response) => {
-    const courseId = req.params.courseId;
-    const {page, pageSize} = matchedData(req, {locations: ['query']});
+  validate<ListClassesParams, ListClassesQueryParams>({
+    params: LIST_CLASSES_PARAMS_SCHEMA,
+    query: LIST_CLASSES_QUERY_SCHEMA,
+  }) as any,
+  async (req: Request<ListClassesParams, any, unknown, ListClassesQueryParams>, res: Response) => {
+    const {courseId} = req.params;
+    const {page, pageSize} = req.query;
 
     const result = await mediatR.send(
       new ListClassesQuery(courseId, page, pageSize, req.currentUser!.role, req.currentUser!.id)
@@ -113,14 +121,14 @@ export class ListClassesQuery extends RequestData<ListClassesResponse> implement
   ) {
     super();
     this.courseId = courseId;
-    this.page = page;
-    this.pageSize = pageSize;
-    this.take = pageSize;
-    this.skip = (page - 1) * pageSize;
+    this.page = Number(page);
+    this.pageSize = Number(pageSize);
+    this.take = Number(pageSize);
+    this.skip = (Number(page) - 1) * Number(pageSize);
   }
 }
 
-export class ListClassesResponse extends PaginatedResponse<ClassDto> {}
+class ListClassesResponse extends PaginatedResponse<ClassDto> {}
 
 @injectable()
 @requestHandler(ListClassesQuery)

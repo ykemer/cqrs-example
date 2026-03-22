@@ -1,9 +1,15 @@
 import express, {Request, Response} from 'express';
-import {param} from 'express-validator';
 import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {injectable} from 'tsyringe';
 
-import {CourseModel, mediatR, NotFoundError, requireAuth, requireRole, UserRole, validateRequest} from '@/shared';
+import {CourseModel, mediatR, NotFoundError, requireAuth, requireRole, UserRole} from '@/shared';
+import {validate} from '@/shared/middleware';
+
+import {GET_COURSE_PARAMS_SCHEMA} from './get-course.schema';
+
+type GetCourseParams = {
+  id: string;
+};
 
 const router = express.Router();
 
@@ -58,12 +64,11 @@ const router = express.Router();
  */
 router.get(
   '/api/v1/courses/:id',
+  validate<GetCourseParams>({params: GET_COURSE_PARAMS_SCHEMA}),
   requireRole([UserRole.admin]),
-  [param('id').isUUID().withMessage('Course ID must be a valid UUID')],
-  validateRequest,
   requireAuth,
-  async (req: Request, res: Response) => {
-    const id = req.params.id as string;
+  async (req: Request<GetCourseParams>, res: Response) => {
+    const {id} = req.params;
     const course = await mediatR.send(new GetCourseQuery(id));
     res.status(200).send(course);
   }
@@ -76,7 +81,7 @@ class CourseDto {
   enrolledUsers: number;
 }
 
-class GetCourseQuery extends RequestData<CourseDto> {
+export class GetCourseQuery extends RequestData<CourseDto> {
   constructor(public readonly id: string) {
     super();
   }

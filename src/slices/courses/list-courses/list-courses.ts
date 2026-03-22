@@ -1,19 +1,17 @@
 import express, {Request, Response} from 'express';
-import {matchedData, query} from 'express-validator';
 import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {Op, Sequelize} from 'sequelize';
 import {injectable} from 'tsyringe';
 
-import {
-  ClassModel,
-  CourseModel,
-  mediatR,
-  PaginatedRequest,
-  PaginatedResponse,
-  requireAuth,
-  UserRole,
-  validateRequest,
-} from '@/shared';
+import {ClassModel, CourseModel, mediatR, PaginatedRequest, PaginatedResponse, requireAuth, UserRole} from '@/shared';
+import {validate} from '@/shared/middleware';
+
+import {LIST_COURSES_QUERY_SCHEMA} from './list-courses.schema';
+
+type ListCoursesQueryParams = {
+  page: number;
+  pageSize: number;
+};
 
 const router = express.Router();
 
@@ -72,20 +70,16 @@ const router = express.Router();
  */
 router.get(
   '/api/v1/courses',
-  [
-    query('page').default(1).isInt({min: 1}).toInt().withMessage('page must be a number greater than 0'),
-    query('pageSize').default(10).isInt({min: 1, max: 10}).toInt().withMessage('pageSize must be between 1 and 10'),
-  ],
-  validateRequest,
+  validate<unknown, ListCoursesQueryParams>({query: LIST_COURSES_QUERY_SCHEMA}) as any,
   requireAuth,
-  async (req: Request, res: Response) => {
-    const {page, pageSize} = matchedData(req, {locations: ['query']});
+  (async (req: Request<unknown, any, unknown, ListCoursesQueryParams>, res: Response) => {
+    const {page, pageSize} = req.query;
     const result = await mediatR.send(new ListCoursesQuery(page, pageSize, req.currentUser!.role, req.currentUser!.id));
     res.status(200).send(result);
-  }
+  }) as any
 );
 
-class ListCoursesQuery extends RequestData<ListCoursesResponse> implements PaginatedRequest {
+export class ListCoursesQuery extends RequestData<ListCoursesResponse> implements PaginatedRequest {
   public readonly page: number;
   public readonly pageSize: number;
   public readonly take: number;
@@ -98,10 +92,10 @@ class ListCoursesQuery extends RequestData<ListCoursesResponse> implements Pagin
     public readonly userId: string
   ) {
     super();
-    this.page = page;
-    this.pageSize = pageSize;
-    this.take = pageSize;
-    this.skip = (page - 1) * pageSize;
+    this.page = Number(page);
+    this.pageSize = Number(pageSize);
+    this.take = Number(pageSize);
+    this.skip = (Number(page) - 1) * Number(pageSize);
   }
 }
 

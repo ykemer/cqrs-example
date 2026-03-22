@@ -1,9 +1,15 @@
 import express, {Request, Response} from 'express';
-import {param} from 'express-validator';
 import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {injectable} from 'tsyringe';
 
-import {mediatR, NotFoundError, requireRole, UserModel, UserRole, validateRequest} from '@/shared';
+import {mediatR, NotFoundError, requireRole, UserModel, UserRole} from '@/shared';
+import {validate} from '@/shared/middleware';
+
+import {DELETE_USER_PARAMS_SCHEMA} from './delete-user.schema';
+
+type DeleteUserParams = {
+  id: string;
+};
 
 const router = express.Router();
 
@@ -60,11 +66,10 @@ const router = express.Router();
  */
 router.delete(
   '/api/v1/users/:id',
-  [param('id').isString().notEmpty().isUUID().withMessage('User ID is required')],
-  validateRequest,
+  validate<DeleteUserParams>({params: DELETE_USER_PARAMS_SCHEMA}),
   requireRole([UserRole.admin]),
-  async (req: Request<{id: string}>, res: Response) => {
-    const id = req.params.id;
+  async (req: Request, res: Response) => {
+    const id = req.params.id as string;
     await mediatR.send(new DeleteUserCommand(id));
     res.status(204).send();
   }

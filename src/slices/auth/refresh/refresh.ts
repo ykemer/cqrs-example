@@ -1,12 +1,14 @@
 import express, {Request, Response} from 'express';
-import {body} from 'express-validator';
 import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {inject, injectable} from 'tsyringe';
 
-import {BadRequestError, DI_TOKENS, JwtServiceInterface, RefreshTokenModel, UserModel, validateRequest} from '@/shared';
+import {BadRequestError, DI_TOKENS, JwtServiceInterface, RefreshTokenModel, UserModel} from '@/shared';
 import {mediatR} from '@/shared/mediatr';
+import {validate} from '@/shared/middleware';
 import {sequelize} from '@/shared/persistence/database';
 import {RefreshTokenServiceInterface} from '@/shared/services/refresh-rokens-service';
+
+import {REFRESH_BODY_SCHEMA, RefreshBody} from './refresh.schema';
 
 const router = express.Router();
 
@@ -50,16 +52,15 @@ const router = express.Router();
  */
 router.post(
   '/api/v1/auth/refresh',
-  [body('refreshToken').trim().notEmpty().withMessage('refreshToken is required')],
-  validateRequest,
-  async (req: Request, res: Response) => {
+  validate<unknown, unknown, RefreshBody>({body: REFRESH_BODY_SCHEMA}),
+  async (req: Request<RefreshBody>, res: Response) => {
     const {refreshToken} = req.body;
     const result = await mediatR.send(new UpdateRefreshTokenCommand(refreshToken));
     res.status(200).send(result);
   }
 );
 
-class UpdateRefreshTokenCommand extends RequestData<UpdateRefreshTokenResponse> {
+export class UpdateRefreshTokenCommand extends RequestData<UpdateRefreshTokenResponse> {
   constructor(public readonly refreshToken: string) {
     super();
   }

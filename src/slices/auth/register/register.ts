@@ -1,11 +1,13 @@
 import express, {Request, Response} from 'express';
-import {body} from 'express-validator';
 import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {inject, injectable} from 'tsyringe';
 
-import {ConflictError, DI_TOKENS, PasswordServiceInterface, UserModel, validateRequest} from '@/shared';
+import {ConflictError, DI_TOKENS, PasswordServiceInterface, UserModel} from '@/shared';
 import {mediatR} from '@/shared/mediatr';
+import {validate} from '@/shared/middleware';
 import {sequelize} from '@/shared/persistence/database';
+
+import {REGISTER_BODY_SCHEMA, RegisterBody} from './register.schema';
 
 const router = express.Router();
 
@@ -46,20 +48,15 @@ const router = express.Router();
  */
 router.post(
   '/api/v1/auth/register',
-  [
-    body('email').trim().normalizeEmail().isEmail().withMessage('Email must be valid'),
-    body('name').trim().notEmpty().withMessage('Name should not be empty'),
-    body('password').trim().isLength({min: 4, max: 20}).withMessage('Password must be between 4 and 20 characters'),
-  ],
-  validateRequest,
-  async (req: Request, res: Response) => {
+  validate<unknown, unknown, RegisterBody>({body: REGISTER_BODY_SCHEMA}),
+  async (req: Request<RegisterBody>, res: Response) => {
     const {email, name, password} = req.body;
     await mediatR.send(new RegisterCommand(name, email, password));
     res.status(204).send();
   }
 );
 
-class RegisterCommand extends RequestData<void> {
+export class RegisterCommand extends RequestData<void> {
   constructor(
     public readonly name: string,
     public readonly email: string,

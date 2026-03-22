@@ -1,18 +1,15 @@
 import express, {Request, Response} from 'express';
-import {param} from 'express-validator';
 import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {injectable} from 'tsyringe';
 
-import {
-  BadRequestError,
-  CourseModel,
-  mediatR,
-  NotFoundError,
-  requireRole,
-  sequelize,
-  UserRole,
-  validateRequest,
-} from '@/shared';
+import {BadRequestError, CourseModel, mediatR, NotFoundError, requireRole, sequelize, UserRole} from '@/shared';
+import {validate} from '@/shared/middleware';
+
+import {DELETE_COURSE_PARAMS_SCHEMA} from './delete-course.schema';
+
+type DeleteCourseParams = {
+  id: string;
+};
 
 const router = express.Router();
 
@@ -69,17 +66,16 @@ const router = express.Router();
  */
 router.delete(
   '/api/v1/courses/:id',
-  [param('id').isUUID().withMessage('Course ID must be a valid UUID')],
-  validateRequest,
+  validate<DeleteCourseParams>({params: DELETE_COURSE_PARAMS_SCHEMA}),
   requireRole([UserRole.admin]),
-  async (req: Request, res: Response) => {
-    const id = req.params.id as string;
+  async (req: Request<DeleteCourseParams>, res: Response) => {
+    const {id} = req.params;
     await mediatR.send(new DeleteCourseCommand(id));
     res.status(204).send();
   }
 );
 
-class DeleteCourseCommand extends RequestData<void> {
+export class DeleteCourseCommand extends RequestData<void> {
   constructor(public readonly id: string) {
     super();
   }

@@ -1,5 +1,4 @@
 import express, {Request, Response} from 'express';
-import {body, matchedData, param} from 'express-validator';
 import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {injectable} from 'tsyringe';
 
@@ -11,9 +10,12 @@ import {
   NotFoundError,
   requireRole,
   sequelize,
+  UpsertClassPayload,
   UserRole,
-  validateRequest,
 } from '@/shared';
+import {validate} from '@/shared/middleware';
+
+import {UPDATE_CLASS_BODY_SCHEMA, UPDATE_CLASS_PARAMS_SCHEMA} from './update-class.schema';
 
 const router = express.Router();
 
@@ -96,44 +98,19 @@ const router = express.Router();
  */
 router.put(
   '/api/v1/courses/:courseId/classes/:classId',
-  [
-    requireRole([UserRole.admin]),
-    param('classId').isUUID().withMessage('ID must be a valid UUID'),
-    param('courseId').isUUID().withMessage('ID must be a valid UUID'),
-    body('maxUsers').optional().isInt({min: 1}),
-    body('registrationDeadline')
-      .isISO8601()
-      .toDate()
-      .withMessage('Registration deadline must be a valid date')
-      .custom((value, {req}) => {
-        if (new Date(value) >= new Date(req.body.startDate)) {
-          throw new Error('Registration deadline must be before start date');
-        }
-        return true;
-      }),
-    body('startDate')
-      .isISO8601()
-      .toDate()
-      .withMessage('Start date must be a valid date')
-      .custom((value, {req}) => {
-        if (new Date(value) >= new Date(req.body.endDate)) {
-          throw new Error('Start date must be before end date');
-        }
-        return true;
-      }),
-    body('endDate').optional().isISO8601().toDate(),
-  ],
-  validateRequest,
-  async (req: Request<{courseId: string; classId: string}>, res: Response) => {
-    const {courseId, classId} = req.params;
-    const bodyData = matchedData<UpsertClassPayload>(req, {locations: ['body']});
+  requireRole([UserRole.admin]),
+  validate({params: UPDATE_CLASS_PARAMS_SCHEMA, body: UPDATE_CLASS_BODY_SCHEMA}),
+  async (req: Request, res: Response) => {
+    const courseId = req.params.courseId as string;
+    const classId = req.params.classId as string;
+    const bodyData = req.body as UpsertClassPayload;
     const command = new UpdateClassCommand();
     command.id = classId;
     command.courseId = courseId;
     command.maxUsers = bodyData.maxUsers;
-    command.registrationDeadline = bodyData.registrationDeadline;
-    command.startDate = bodyData.startDate;
-    command.endDate = bodyData.endDate;
+    command.registrationDeadline = new Date(bodyData.registrationDeadline);
+    command.startDate = new Date(bodyData.startDate);
+    command.endDate = new Date(bodyData.endDate);
 
     await mediatR.send(command);
     res.status(204).send();
@@ -149,17 +126,18 @@ export class UpdateClassCommand extends RequestData<void> {
   endDate: Date;
 }
 
-type UpsertClassPayload = {
-  maxUsers: number;
-  registrationDeadline: Date;
-  startDate: Date;
-  endDate: Date;
-};
-
 @injectable()
 @requestHandler(UpdateClassCommand)
 export class UpdateClassCommandHandler implements RequestHandler<UpdateClassCommand, void> {
   async handle(command: UpdateClassCommand): Promise<void> {
+    // Validate date constraints
+    if (command.registrationDeadline >= command.startDate) {
+      throw new BadRequestError('Registration deadline must be before start date');
+    }
+    if (command.startDate >= command.endDate) {
+      throw new BadRequestError('Start date must be before end date');
+    }
+
     return await sequelize.transaction(async t => {
       const course = await CourseModel.findOne({
         where: {id: command.courseId},

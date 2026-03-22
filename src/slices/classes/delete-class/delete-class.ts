@@ -1,18 +1,16 @@
 import express, {Request, Response} from 'express';
-import {param} from 'express-validator';
 import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {injectable} from 'tsyringe';
 
-import {
-  BadRequestError,
-  ClassModel,
-  mediatR,
-  NotFoundError,
-  requireRole,
-  sequelize,
-  UserRole,
-  validateRequest,
-} from '@/shared';
+import {BadRequestError, ClassModel, mediatR, NotFoundError, requireRole, sequelize, UserRole} from '@/shared';
+import {validate} from '@/shared/middleware';
+
+import {DELETE_CLASS_PARAMS_SCHEMA} from './delete-class.schema';
+
+type DeleteClassParams = {
+  courseId: string;
+  classId: string;
+};
 
 const router = express.Router();
 
@@ -70,14 +68,11 @@ const router = express.Router();
  */
 router.delete(
   '/api/v1/courses/:courseId/classes/:classId',
-  [
-    requireRole([UserRole.admin]),
-    param('courseId').isUUID().withMessage('courseId must be a valid UUID'),
-    param('classId').isUUID().withMessage('classId must be a valid UUID'),
-  ],
-  validateRequest,
-  async (req: Request<{courseId: string; classId: string}>, res: Response) => {
-    const {classId, courseId} = req.params;
+  validate<DeleteClassParams>({params: DELETE_CLASS_PARAMS_SCHEMA}),
+  requireRole([UserRole.admin]),
+  async (req: Request, res: Response) => {
+    const classId = req.params.classId as string;
+    const courseId = req.params.courseId as string;
     await mediatR.send(new DeleteClassCommand(courseId, classId));
     res.status(204).send();
   }

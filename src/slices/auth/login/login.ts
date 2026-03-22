@@ -1,5 +1,4 @@
 import express, {Request, Response} from 'express';
-import {body} from 'express-validator';
 import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {inject, injectable} from 'tsyringe';
 
@@ -10,11 +9,13 @@ import {
   PasswordServiceInterface,
   RefreshTokenModel,
   UserModel,
-  validateRequest,
 } from '@/shared';
 import {mediatR} from '@/shared/mediatr';
+import {validate} from '@/shared/middleware';
 import {sequelize} from '@/shared/persistence/database';
 import {RefreshTokenServiceInterface} from '@/shared/services/refresh-rokens-service';
+
+import {LOGIN_BODY_SCHEMA, LoginBody} from './login.schema';
 
 const router = express.Router();
 
@@ -53,12 +54,8 @@ const router = express.Router();
  */
 router.post(
   '/api/v1/auth/login',
-  [
-    body('email').trim().normalizeEmail().isEmail().withMessage('Email must be valid'),
-    body('password').trim().notEmpty().withMessage('You must provide a password'),
-  ],
-  validateRequest,
-  async (req: Request, res: Response) => {
+  validate<unknown, unknown, LoginBody>({body: LOGIN_BODY_SCHEMA}),
+  async (req: Request<LoginBody>, res: Response) => {
     const {email, password} = req.body;
     const result = await mediatR.send(new LoginCommand(email, password));
     res.status(200).send(result);
@@ -71,7 +68,7 @@ class LoginUserResponse {
   expires_in: number;
 }
 
-class LoginCommand extends RequestData<LoginUserResponse> {
+export class LoginCommand extends RequestData<LoginUserResponse> {
   constructor(
     public readonly email: string,
     public readonly password: string

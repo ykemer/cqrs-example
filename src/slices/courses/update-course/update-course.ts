@@ -1,9 +1,20 @@
 import express, {Request, Response} from 'express';
-import {body, matchedData, param} from 'express-validator';
 import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {injectable} from 'tsyringe';
 
-import {CourseModel, mediatR, NotFoundError, requireRole, sequelize, UserRole, validateRequest} from '@/shared';
+import {CourseModel, mediatR, NotFoundError, requireRole, sequelize, UserRole} from '@/shared';
+import {validate} from '@/shared/middleware';
+
+import {UPDATE_COURSE_BODY_SCHEMA, UPDATE_COURSE_PARAMS_SCHEMA} from './update-course.schema';
+
+type UpdateCourseParams = {
+  id: string;
+};
+
+type UpdateCourseBody = {
+  name: string;
+  description: string;
+};
 
 const router = express.Router();
 
@@ -72,22 +83,20 @@ const router = express.Router();
  */
 router.patch(
   '/api/v1/courses/:id',
-  [
-    param('id').isUUID().withMessage('Course ID must be a valid UUID'),
-    body('name').trim().notEmpty().withMessage('Name is required'),
-    body('description').trim().notEmpty().withMessage('Description is required'),
-  ],
-  validateRequest,
+  validate<UpdateCourseParams, unknown, UpdateCourseBody>({
+    params: UPDATE_COURSE_PARAMS_SCHEMA,
+    body: UPDATE_COURSE_BODY_SCHEMA,
+  }),
   requireRole([UserRole.admin]),
-  async (req: Request, res: Response) => {
-    const id = req.params.id as string;
-    const {name, description} = matchedData(req, {locations: ['body']});
+  async (req: Request<UpdateCourseParams, any, UpdateCourseBody>, res: Response) => {
+    const {id} = req.params;
+    const {name, description} = req.body;
     await mediatR.send(new UpdateCourseCommand(id, name, description));
     res.status(204).send();
   }
 );
 
-class UpdateCourseCommand extends RequestData<void> {
+export class UpdateCourseCommand extends RequestData<void> {
   constructor(
     public readonly id: string,
     public readonly name: string,

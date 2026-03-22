@@ -1,5 +1,4 @@
 import express, {Request, Response} from 'express';
-import {param} from 'express-validator';
 import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {injectable} from 'tsyringe';
 
@@ -12,9 +11,16 @@ import {
   NotFoundError,
   requireAuth,
   sequelize,
-  validateRequest,
 } from '@/shared';
 import {UserUnenrolledEvent} from '@/shared/domain/events';
+import {validate} from '@/shared/middleware';
+
+import {UNENROLL_FROM_CLASS_PARAMS_SCHEMA} from './unenroll-from-class.schema';
+
+type UnenrollFromClassParams = {
+  classId: string;
+  courseId: string;
+};
 
 const router = express.Router();
 
@@ -72,13 +78,9 @@ const router = express.Router();
  */
 router.delete(
   '/api/v1/courses/:courseId/classes/:classId/enrollments',
-  [
-    param('classId').isUUID().withMessage('ID must be a valid UUID'),
-    param('courseId').isUUID().withMessage('ID must be a valid UUID'),
-  ],
-  validateRequest,
+  validate<UnenrollFromClassParams>({params: UNENROLL_FROM_CLASS_PARAMS_SCHEMA}),
   requireAuth,
-  async (req: Request<{courseId: string; classId: string}>, res: Response) => {
+  async (req: Request<UnenrollFromClassParams>, res: Response) => {
     const {classId, courseId} = req.params;
     await mediatR.send(new UnenrollFromClassCommand(classId, courseId, req.currentUser.id));
     res.status(204).send();

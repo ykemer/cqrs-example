@@ -1,9 +1,16 @@
 import express, {Request, Response} from 'express';
-import {matchedData, query} from 'express-validator';
 import {RequestData, RequestHandler, requestHandler} from 'mediatr-ts';
 import {injectable} from 'tsyringe';
 
-import {mediatR, PaginatedResponse, requireRole, UserDto, UserModel, UserRole, validateRequest} from '@/shared';
+import {mediatR, PaginatedResponse, requireRole, UserDto, UserModel, UserRole} from '@/shared';
+import {validate} from '@/shared/middleware';
+
+import {LIST_USERS_QUERY_SCHEMA} from './list-users.schema';
+
+type ListUsersQueryParams = {
+  page: number;
+  pageSize: number;
+};
 
 const router = express.Router();
 
@@ -66,32 +73,28 @@ const router = express.Router();
  */
 router.get(
   '/api/v1/users',
-  [
-    query('page').default(1).isInt({min: 1}).toInt().withMessage('page must be a number greater than 0'),
-    query('pageSize').default(10).isInt({min: 1, max: 10}).toInt().withMessage('page size must be between 1 and 10'),
-  ],
-  validateRequest,
+  validate<unknown, ListUsersQueryParams>({query: LIST_USERS_QUERY_SCHEMA}) as any,
   requireRole([UserRole.admin]),
-  async (req: Request, res: Response) => {
-    const {page, pageSize} = matchedData(req, {locations: ['query']});
+  (async (req: Request<unknown, any, unknown, ListUsersQueryParams>, res: Response) => {
+    const {page, pageSize} = req.query;
     const result = await mediatR.send(new ListUsersQuery(page, pageSize));
     res.status(200).send(result);
-  }
+  }) as any
 );
 
-class ListUsersQuery extends RequestData<ListUsersResponse> {
+export class ListUsersQuery extends RequestData<ListUsersResponse> {
   page: number;
   pageSize: number;
   take: number;
   skip: number;
 
-  constructor(page: number, pageSize: number) {
+  constructor(page: number = 1, pageSize: number = 10) {
     super();
-    this.page = page;
-    this.pageSize = pageSize;
+    this.page = Number(page);
+    this.pageSize = Number(pageSize);
 
-    this.take = pageSize;
-    this.skip = (page - 1) * pageSize;
+    this.take = Number(pageSize);
+    this.skip = (Number(page) - 1) * Number(pageSize);
   }
 }
 
