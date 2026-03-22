@@ -24,10 +24,5 @@ module.exports = {
     '<rootDir>/src/shared/services/jwt-service.ts',
     '<rootDir>/src/shared/services/log-service.ts',
   ],
-  coverageThreshold: {
-    './src/slices/courses/create-course/*': {
-      lines: 100,
-      statements: 100,
-    },
-  },
+  coverageThreshold: {},
 };

@@ -4,60 +4,84 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Scripts
 
-- **Build**: `npm run build` – compiles TypeScript to JavaScript (`tsc`).
-- **Dev**: `npm run dev` – runs the application with file watching (`nodemon` + `ts-node`).
-- **Run**: `npm run run` – executes the main entry point (`src/index.ts`).
-- **Lint**: `npm run lint` – runs ESLint on source files.
-- **Lint:Fix**: `npm run lint:fix` – automatically fixes linting issues.
-- **Format**: `npm run format` – runs Prettier to format files.
-- **Format:Check**: `npm run format:check` – checks formatting without modifying files.
-- **Test**: `npm run test` – runs Jest tests in test environment.
-- **Test:Watch**: `npm run test:watch` – runs Jest in watch mode.
-- **Test:Cov**: `npm run test:cov` – runs tests with coverage reporting.
-- **Migrate**: `npm run migrate` – executes database migrations via Sequelize CLI.
-- **Seed-Db**: `npm run seed-db` – seeds the database with initial data.
+- `npm run build` – compile TypeScript to `dist/`
+- `npm run dev` – run with nodemon + ts-node (file watching)
+- `npm run test` – run all Jest tests
+- `npm run test:watch` – Jest in watch mode
+- `npm run test:cov` – tests with coverage report
+- `npm run lint:fix` – auto-fix ESLint issues
+- `npm run format` – Prettier formatting
+- `npm run knip` – detect unused code
+- `npm run migrate` – run Sequelize migrations
+- `npm run seed-db` – seed database
 
-## Commonly Used Tools
+**Run a single test file:**
+```bash
+npx jest tests/slices/courses/create-course.handler.spec.ts
+```
 
-- **Prettier** – code formatting (`format`, `format:check`).
-- **Knip** – identifies unused code (`knip`).
-- **ESLint** – linting (`lint`, `lint:fix`).
+**Run tests matching a name pattern:**
+```bash
+npx jest --testNamePattern="should create"
+```
 
-## Project Architecture Overview
+## Architecture
 
-The codebase follows a CQRS (Command Query Responsibility Segregation) pattern organized under `src/`:
+The project uses **Vertical Slice Architecture** with **CQRS** and the **Mediator pattern** (`mediatr-ts`).
 
-- **shared/** – Common utilities, middleware, domain errors, DTOs, services, and DI containers used across slices.
-- **slices/** – Domain-specific modules (e.g., `auth`, `users`, `courses`, `classes`, `enrollments`). Each slice contains routers, controllers, use‑cases, and sometimes its own index file.
-- **index.ts** – Main entry point that sets up the Express server and mounts routers.
-- **services/** – High‑level services such as authentication, persistence, and logging.
-- **middleware/** – Express middleware for validation, authentication, error handling, and logging.
-- **domain/** – Core domain models, DTOs, and error definitions.
-- **persistence/** – Database setup and repository patterns, typically using Sequelize.
+```
+src/
+  slices/       # Feature slices: auth, users, courses, classes, enrollments
+  shared/       # Cross-cutting: di, domain, mediatr, middleware, persistence, services, swagger, utils
+  index.ts      # Express app setup and router registration
+tests/
+  slices/       # Integration tests per slice
+  builders/     # Builder pattern data factories
+  utils/        # Shared test helpers (db.ts, handler.ts)
+```
 
-The project uses TypeScript with `tsconfig-paths` for path aliases, `reflect-metadata` for decorators, and Sequelize as the ORM. Database interactions are abstracted through services and repositories.
+### Slice Structure
+
+Each use-case lives in its own file under `src/slices/<domain>/<use-case>/`. A single file contains both the Command/Query class and its handler:
+
+```typescript
+// Command/Query
+export class CreateCourseCommand extends RequestData<CourseDto> {
+  constructor(public name: string, public description: string) { super(); }
+}
+
+// Handler
+@injectable()
+@requestHandler(CreateCourseCommand)
+export class CreateCourseCommandHandler implements IRequestHandler<CreateCourseCommand, CourseDto> {
+  async handle(cmd: CreateCourseCommand): Promise<CourseDto> { ... }
+}
+```
+
+The slice router aggregates use-cases and is registered in `src/index.ts`.
+
+### Key Conventions
+
+- **DTOs only** – handlers return clean DTOs (`src/shared/domain/dto/`), never raw Sequelize models.
+- **No `any`** – use proper TypeScript types throughout.
+- **Cross-slice side effects** – use Domain Events (`mediatR.publish()`), not direct imports between slices. Events are defined in `src/shared/domain/events/`.
+- **Database** – Sequelize with PostgreSQL (production) and SQLite in-memory (tests via `NODE_ENV=test`). Sequelize is configured with read/write replicas.
+- **DI** – Tsyringe (`@injectable()`). Services registered in `src/shared/di/container.ts` with tokens from `src/shared/di/tokens.ts`.
+- **Path alias** – `@/` maps to `src/` (configured in `tsconfig.json` and `jest.config.js`).
+- **Error responses** – custom errors extend `CustomError` with a `statusCode`; the global error handler serializes them to RFC 7807 `application/problem+json`.
 
 ## Testing
 
-Tests are written with Jest and can be run via the `test`, `test:watch`, and `test:cov` scripts. Tests are colocated with code (often in `__tests__` folders or next to implementation files).
+Tests are **integration tests** using a real in-memory SQLite database — do not mock database operations.
 
-## Environment Variables
+**Execution order within each `describe`:**
+1. Edge cases and error handling (400, 401, 403, 404, 409)
+2. Happy path (200, 201, 204)
 
-The application relies on environment variables typically loaded via a `.env` file (handled by the `dotenv` package). Common variables include database connection strings, JWT secrets, and rate‑limit configurations.
-
-## Database
-
-Sequelize is used as the ORM. Migration and seeding commands are available via `npm run migrate` and `npm run seed-db`, which invoke `sequelize-cli`.
-
-## Useful Development Commands
-
-- `npm run knip` – runs the Knip unused‑code analyzer.
-- `npm run format` – formats all `src/**/*.{ts,tsx,json,md}` files.
-- `npm run format:check` – validates formatting.
-
-## Notes for Future Contributors
-
-- Follow the existing folder structure and naming conventions.
-- Keep domain logic within the appropriate slice; avoid cross‑slice dependencies.
-- When adding new features, ensure corresponding tests are added.
-- Keep migration scripts up‑to‑date with schema changes.
+**Rules:**
+- Each `it` block tests **exactly one scenario and one status code**.
+- Use `beforeEach` or isolated data creation; never share state between tests.
+- Use **Builder Pattern** for all test data — builders live in `tests/builders/`.
+- Mock `mediatR.publish` for side-effect events not under test; never mock DB operations.
+- Use `tests/utils/db.ts` for database helpers and `tests/utils/handler.ts` for `expectErrorThrown`.
+- Aim for 100% coverage per slice.
