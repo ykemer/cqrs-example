@@ -1,4 +1,4 @@
-export type PaginatedResponseConstructor<T> = {
+type PaginatedResponseConstructor<T> = {
   data: T[];
   total: number;
   page: number;

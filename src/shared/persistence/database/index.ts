@@ -41,7 +41,6 @@ if (process.env.NODE_ENV === 'test') {
       ],
     },
     pool: {
-      // reasonable defaults for dev; adjust in production
       max: 10,
       idle: 30000,
     },

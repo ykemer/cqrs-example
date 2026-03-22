@@ -1,6 +1,6 @@
 ﻿import {Sequelize} from 'sequelize';
 
-export type HealthServiceInterface = {
+type HealthServiceInterface = {
   checkDatabase(): Promise<boolean>;
 };
 

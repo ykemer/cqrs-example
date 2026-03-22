@@ -4,3 +4,10 @@ export class CourseDto {
   description: string;
   enrolledUsers: number;
 }
+
+export type UpsertClassPayload = {
+  maxUsers: number;
+  registrationDeadline: Date;
+  startDate: Date;
+  endDate: Date;
+};
