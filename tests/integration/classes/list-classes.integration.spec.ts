@@ -2,12 +2,14 @@ import request from 'supertest';
 import {createTestApp} from '../../utils/app';
 import {createCourse, createClass, createUser} from '../../utils/db';
 import {UserRole} from '@/shared/domain/models/user';
+import {GUID1} from '../../utils/fake-guilds';
 
 describe('Classes - list', () => {
   describe('Error cases', () => {
     it('should return 404 when the course not found', async () => {
       const app = createTestApp({currentUser: {id: 'a', role: UserRole.admin}});
-      const res = await request(app).get(`/api/v1/courses/00000000-0000-0000-0000-000000000000/classes`);
+      const res = await request(app).get(`/api/v1/courses/${GUID1}/classes`);
+
       expect(res.status).toBe(404);
       expect(res.body).toHaveProperty('title');
     });
