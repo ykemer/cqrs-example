@@ -1,4 +1,4 @@
-import {PaginatedRequest, PaginatedResponse} from './index';
+import {PaginatedRequest, PaginatedResponse} from '../../../../../src/shared';
 
 class TestPaginatedResponse<T> extends PaginatedResponse<T> {}
 
