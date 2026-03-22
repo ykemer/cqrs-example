@@ -74,6 +74,58 @@ You are an expert AI programming assistant specializing in JavaScript/TypeScript
   }
   ```
 
+### Custom Format Validators
+The project implements three custom AJV format validators in `src/shared/utils/ajv.ts` to prevent malicious input:
+
+- **`safeString`** – Most restrictive: allows only `a-z`, `A-Z`, `0-9`, `.`, `,`, `!`
+  - Use for: User bios, display names, descriptions with limited punctuation
+  - Rejects: HTML, spaces, special characters
+  
+- **`alphanumeric`** – Very strict: allows only `a-z`, `A-Z`, `0-9`
+  - Use for: Usernames, product codes, identifiers
+  - Rejects: Everything else including dots and spaces
+  
+- **`noHtmlJs`** – Permissive: rejects only `< > { } [ ] \`
+  - Use for: General text, descriptions, comments
+  - Prevents: HTML/template injection, JSON object injection, array notation
+  - Allows: Spaces, quotes, special chars (`;`, `@`, `/`, etc.)
+
+### Using VALIDATION_HELPERS
+Always use the centralized `VALIDATION_HELPERS` object from `@/shared/utils/ajv.ts` with spread syntax:
+
+```typescript
+import {VALIDATION_HELPERS} from '@/shared/utils/ajv';
+
+// In your schema
+export const CREATE_USER_SCHEMA = {
+  type: 'object',
+  properties: {
+    username: {type: 'string' as const, ...VALIDATION_HELPERS.ALPHANUMERIC_STRING},
+    email: {type: 'string' as const, ...VALIDATION_HELPERS.EMAIL_STRING},
+    bio: {type: 'string' as const, ...VALIDATION_HELPERS.LONG_TEXT_STRING},
+    password: {type: 'string' as const, ...VALIDATION_HELPERS.PASSWORD_STRING},
+  },
+  required: ['username', 'email', 'password'],
+} as const;
+```
+
+**Available Helpers:**
+- `REGULAR_STRING` – format: `noHtmlJs`, minLength: 3, maxLength: 255
+- `PASSWORD_STRING` – minLength: 6, maxLength: 255 (no format for flexibility)
+- `LONG_TEXT_STRING` – format: `noHtmlJs`, minLength: 3, maxLength: 1000
+- `EMAIL_STRING` – format: `email`, minLength: 3, maxLength: 255
+- `UUID_STRING` – format: `uuid`, maxLength: 36
+- `DATETIME_STRING` – format: `date-time`, minLength: 4, maxLength: 50
+- `SMALL_POSITIVE_NUMBER_HELPER` – minimum: 1, maximum: 1000
+- `PAGE_SIZE_NUMBER_HELPER` – minimum: 1, maximum: 50, default: 10
+- `PAGE_NUMBER_HELPER` – minimum: 1, default: 1, maximum: 10000
+
+**Security Guidelines:**
+- Never use `format: 'noHtmlJs'` for usernames; prefer `safeString` or `alphanumeric`
+- Always validate length constraints; no unbounded strings
+- Use `format: 'email'` for emails to leverage ajv-formats validation
+- For custom validations (cross-field logic), implement in handlers, not schemas
+
 ## Testing Constraints
 - **Test-Driven:** Follow strict execution order:
   1. Write tests for all edge cases and error handling (400, 401, 403, 404, 409).
