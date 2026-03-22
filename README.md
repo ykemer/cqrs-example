@@ -138,17 +138,18 @@ export const CREATE_USER_SCHEMA = {
 
 #### Available Helpers
 
-| Helper | Constraints | Use Case |
-|--------|-------------|----------|
+| Helper | Constraints | Use Case            |
+|--------|-------------|---------------------|
+| `ALPHANUMERIC_STRING` | format: `alphanumeric`, minLength: 3, maxLength: 255 | Alphanumeric string |
 | `REGULAR_STRING` | format: `noHtmlJs`, minLength: 3, maxLength: 255 | Regular text fields |
-| `PASSWORD_STRING` | minLength: 6, maxLength: 255 (no format) | Passwords |
-| `LONG_TEXT_STRING` | format: `noHtmlJs`, minLength: 3, maxLength: 1000 | Descriptions, bios |
-| `EMAIL_STRING` | format: `email`, minLength: 3, maxLength: 255 | Email addresses |
-| `UUID_STRING` | format: `uuid`, maxLength: 36 | Identifiers |
+| `PASSWORD_STRING` | minLength: 6, maxLength: 255 (no format) | Passwords           |
+| `LONG_TEXT_STRING` | format: `noHtmlJs`, minLength: 3, maxLength: 1000 | Descriptions, bios  |
+| `EMAIL_STRING` | format: `email`, minLength: 3, maxLength: 255 | Email addresses     |
+| `UUID_STRING` | format: `uuid`, maxLength: 36 | Identifiers         |
 | `DATETIME_STRING` | format: `date-time`, minLength: 4, maxLength: 50 | ISO 8601 timestamps |
-| `SMALL_POSITIVE_NUMBER_HELPER` | minimum: 1, maximum: 1000 | Counts, IDs |
-| `PAGE_SIZE_NUMBER_HELPER` | minimum: 1, maximum: 50, default: 10 | Pagination |
-| `PAGE_NUMBER_HELPER` | minimum: 1, default: 1, maximum: 10000 | Page numbers |
+| `SMALL_POSITIVE_NUMBER_HELPER` | minimum: 1, maximum: 1000 | Counts, IDs         |
+| `PAGE_SIZE_NUMBER_HELPER` | minimum: 1, maximum: 50, default: 10 | Pagination          |
+| `PAGE_NUMBER_HELPER` | minimum: 1, default: 1, maximum: 10000 | Page numbers        |
 
 ### Security Guidelines
 
